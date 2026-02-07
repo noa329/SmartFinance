@@ -11,23 +11,23 @@ namespace Repository.Entities
         public int Id { get; set; }
 
         public int UserId { get; set; }
-        public User User { get; set; }
+        public User User { get; set; } = null!;
 
-        public string MerchantName { get; set; }
+        public string MerchantName { get; set; } = null!;
         public decimal TotalAmount { get; set; }
         public DateTime TransactionDate { get; set; }
 
         public int CategoryId { get; set; }
-        public Category Category { get; set; }
+        public Category Category { get; set; } = null!;
 
         public int? EventId { get; set; }
-        public Event Event { get; set; }
+        public Event Event { get; set; } = null!;
 
         public int InstallmentsCount { get; set; } = 1;
         public decimal InstallmentAmount { get; set; }
         public DateTime FirstInstallmentDate { get; set; }
 
-        public string Source { get; set; } 
-        public string OriginalText { get; set; }
+        public string Source { get; set; } = null!;
+        public string OriginalText { get; set; } = null!;
     }
 }

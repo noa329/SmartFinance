@@ -10,9 +10,9 @@ namespace Repository.Entities
     {
         public int Id { get; set; }
         public int UserId { get; set; }
-        public User User { get; set; }
+        public User User { get; set; } = null!;
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public decimal Budget { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }

@@ -8,8 +8,11 @@
 
   <ItemGroup>
     <Folder Include="interfaces\" />
-    <Folder Include="dto\" />
     <Folder Include="sevices\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Repository\Repository.csproj" />
   </ItemGroup>
 
 </Project>
