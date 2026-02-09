@@ -27,10 +27,10 @@ namespace Repository.Repositories
 
         public async Task Delete(int id)
         {
-            var user = await GetById(id);
-            if (user != null)
+            var expense = await GetById(id);
+            if (expense != null)
             {
-                ctx.Users.Remove(user);
+                ctx.Expenses.Remove(expense);
                 await ctx.Save();
             }
         }
@@ -52,9 +52,25 @@ namespace Repository.Repositories
 
         public async Task<Expense> Update(Expense entity)
         {
-            ctx.Expenses.Update(entity);
+           var existingExpense = await GetById(entity.Id);
+            if (existingExpense == null)
+                throw new KeyNotFoundException("Expense not found");
+
+            existingExpense.UserId = entity.UserId;
+            existingExpense.CategoryId = entity.CategoryId;
+            existingExpense.MerchantName = entity.MerchantName;
+            existingExpense.TotalAmount = entity.TotalAmount;
+            existingExpense.TransactionDate = entity.TransactionDate;
+            existingExpense.EventId = entity.EventId;
+            existingExpense.InstallmentsCount = entity.InstallmentsCount;
+            existingExpense.InstallmentAmount = entity.InstallmentAmount;
+            existingExpense.FirstInstallmentDate = entity.FirstInstallmentDate;
+            existingExpense.Source = entity.Source;
+            existingExpense.OriginalText = entity.OriginalText;
+           
             await ctx.Save();
-            return entity;
+            return existingExpense;
+           
         }
 
 

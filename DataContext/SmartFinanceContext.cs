@@ -21,6 +21,7 @@ namespace DataContext
         public DbSet<Event> Events { get; set; }
         public DbSet<Income> Incomes { get; set; }
         public DbSet<Budget> Budgets { get; set; }
+        public DbSet<Alert> Alerts { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             
