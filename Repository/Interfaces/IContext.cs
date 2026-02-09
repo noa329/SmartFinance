@@ -18,6 +18,8 @@ namespace Repository.Interfaces
         DbSet<Budget> Budgets { get; set; }
         DbSet<Alert> Alerts { get; set; }
 
+        DbSet<T> Set<T>() where T : class;
+
         Task Save();
     }
 }

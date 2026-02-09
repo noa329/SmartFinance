@@ -14,6 +14,5 @@ namespace Repository.Interfaces
         Task<T> Add(T entity);
         Task<T> Update(T entity);
         Task Delete(int id);
-        Task<List<T>> Find(Expression<Func<T, bool>> predicate);
     }
 }

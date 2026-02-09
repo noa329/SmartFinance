@@ -36,6 +36,11 @@ namespace DataContext
 
             modelBuilder.Entity<Alert>().HasOne(a => a.User).WithMany(u => u.Alerts).HasForeignKey(a => a.UserId);
 
+            modelBuilder.Entity<Expense>().Property(e => e.TotalAmount).HasColumnType("decimal(18,2)"); 
+            modelBuilder.Entity<Expense>() .Property(e => e.InstallmentAmount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Income>().Property(i => i.Amount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Event>() .Property(ev => ev.Budget).HasColumnType("decimal(18,2)");
+            base.OnModelCreating(modelBuilder);
         }
     }
 }

@@ -1,4 +1,12 @@
+using DataContext;
+using Repository;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<SmartFinanceContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SmartFinanceDB")));
+
 
 // Add services to the container.
 
