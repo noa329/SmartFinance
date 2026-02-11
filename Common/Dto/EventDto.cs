@@ -6,7 +6,37 @@ using System.Threading.Tasks;
 
 namespace Common.Dto
 {
-    internal class EventDto
+    public class EventDto
     {
+        public int Id { get; set; }
+        public string Name { get; set; } = null!;      
+        public DateTime StartDate { get; set; }        
+        public DateTime EndDate { get; set; }          
+        public decimal Budget { get; set; }           
+
+        public List<int> ExpenseIds { get; set; } = new();
+
+        public List<ExpenseDto>? Expenses { get; set; }
     }
+
+    public class EventCreateDto
+    {
+        public string Name { get; set; } = null!;       
+        public DateTime StartDate { get; set; }        
+        public DateTime EndDate { get; set; }           
+        public decimal Budget { get; set; }             
+        public List<int>? ExpenseIds { get; set; }      
+    }
+
+        public class EventUpdateDto
+        {
+            public string? Name { get; set; }       
+            public DateTime? StartDate { get; set; }        
+            public DateTime? EndDate { get; set; }           
+            public decimal? Budget { get; set; }             
+            public List<int>? ExpenseIds { get; set; }
+    }
+
+
+
 }
