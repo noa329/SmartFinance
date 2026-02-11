@@ -1,6 +1,7 @@
 using DataContext;
-using Repository;
 using Microsoft.EntityFrameworkCore;
+using Repository;
+using Service.Mapping;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,7 @@ builder.Services.AddDbContext<SmartFinanceContext>(options =>
 
 
 // Add services to the container.
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
