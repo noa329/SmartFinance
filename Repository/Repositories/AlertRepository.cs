@@ -51,9 +51,9 @@ namespace Repository.Repositories
             return await ctx.Alerts.FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<Alert> Update(Alert entity)
+        public async Task<Alert> Update(int id,Alert entity)
         {
-           var existingAlert = await GetById(entity.Id);
+           var existingAlert = await GetById(id);
             if (existingAlert == null)
                 throw new KeyNotFoundException("Alert not found");
 

@@ -50,9 +50,9 @@ namespace Repository.Repositories
             return await ctx.Incomes.FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<Income> Update(Income entity)
+        public async Task<Income> Update(int id, Income entity)
         {
-            var existingIncome = await GetById(entity.Id);
+            var existingIncome = await GetById(id);
             if (existingIncome == null)
                 throw new KeyNotFoundException("Income not found");
 

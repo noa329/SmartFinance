@@ -51,9 +51,9 @@ namespace Repository.Repositories
             return await ctx.Users.FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<User> Update(User entity)
+        public async Task<User> Update(int id, User entity)
         {
-            var existingUser = await GetById(entity.Id);
+            var existingUser = await GetById(id);
             if (existingUser == null)
                 throw new KeyNotFoundException("User not found");
             

@@ -50,9 +50,9 @@ namespace Repository.Repositories
             return await ctx.Expenses.FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<Expense> Update(Expense entity)
+        public async Task<Expense> Update(int id, Expense entity)
         {
-           var existingExpense = await GetById(entity.Id);
+           var existingExpense = await GetById(id);
             if (existingExpense == null)
                 throw new KeyNotFoundException("Expense not found");
 

@@ -50,9 +50,9 @@ namespace Repository.Repositories
             return await ctx.Events.FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<Event> Update(Event entity)
+        public async Task<Event> Update(int id, Event entity)
         {
-            var existingEvent = await GetById(entity.Id);
+            var existingEvent = await GetById(id);
             if (existingEvent == null)
                 throw new KeyNotFoundException("Event not found");
 

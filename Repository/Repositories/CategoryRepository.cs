@@ -51,9 +51,9 @@ namespace Repository.Repositories
             return await ctx.Categories.FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<Category> Update(Category entity)
+        public async Task<Category> Update(int id,Category entity)
         {
-            var existingCategory = await GetById(entity.Id);
+            var existingCategory = await GetById(id);
            if (existingCategory == null)
                 throw new KeyNotFoundException("Category not found");
 

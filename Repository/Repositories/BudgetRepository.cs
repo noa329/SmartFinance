@@ -51,9 +51,9 @@ namespace Repository.Repositories
             return await ctx.Budgets.FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public async Task<Budget> Update(Budget entity)
+        public async Task<Budget> Update(int id,Budget entity)
         {
-            var existingBudget = await GetById(entity.Id);
+            var existingBudget = await GetById(id);
             if (existingBudget == null)
                 throw new KeyNotFoundException("Budget not found");
 
