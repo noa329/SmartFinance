@@ -14,7 +14,6 @@ namespace Repository.Interfaces
         DbSet<Expense> Expenses { get; set; }
         DbSet<Category> Categories { get; set; }
         DbSet<Event> Events { get; set; }
-        DbSet<Income> Incomes { get; set; }
         DbSet<Budget> Budgets { get; set; }
         DbSet<Alert> Alerts { get; set; }
 

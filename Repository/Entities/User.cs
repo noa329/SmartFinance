@@ -33,14 +33,15 @@ namespace Repository.Entities
         [MinLength(6)]
         public string PasswordHash { get; set; } = null!;
 
-        public UserRole Role { get; set; } = UserRole.User; 
-  
+        public UserRole Role { get; set; } = UserRole.User;
+
+        public decimal? MonthlyIncome { get; set; }
+        public decimal? YearlyIncome { get; set; }
+
 
         public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
         public ICollection<Event> Events { get; set; } = new List<Event>();
         public ICollection<Budget> Budgets { get; set; } = new List<Budget>();
-        public ICollection<Income> Incomes { get; set; } = new List<Income>();
-
         public ICollection<Alert> Alerts { get; set; } = new List<Alert>();
     }
 }

@@ -17,7 +17,6 @@ namespace Repository.Repositories
             services.AddScoped<IRepository<Expense>, ExpenseRepository>();
             services.AddScoped<IRepository<Category>, CategoryRepository>();
             services.AddScoped<IRepository<Event>, EventRepository>();
-            services.AddScoped<IRepository<Income>, IncomeRepository>();
             services.AddScoped<IRepository<Budget>, BudgetRepository>();
             services.AddScoped<IRepository<Alert>, AlertRepository>();
 

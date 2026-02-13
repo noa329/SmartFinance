@@ -19,7 +19,6 @@ namespace DataContext
         public DbSet<Category> Categories { get; set; }
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<Event> Events { get; set; }
-        public DbSet<Income> Incomes { get; set; }
         public DbSet<Budget> Budgets { get; set; }
         public DbSet<Alert> Alerts { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -27,9 +26,10 @@ namespace DataContext
             
             modelBuilder.Entity<User>().HasMany(u => u.Expenses).WithOne(e => e.User).HasForeignKey(e => e.UserId);
             modelBuilder.Entity<User>().HasMany(u => u.Events).WithOne(ev => ev.User).HasForeignKey(ev => ev.UserId);
-            modelBuilder.Entity<User>().HasMany(u => u.Incomes).WithOne(i => i.User).HasForeignKey(i => i.UserId);
             modelBuilder.Entity<User>().HasMany(u => u.Budgets).WithOne(b => b.User).HasForeignKey(b => b.UserId);
-
+            modelBuilder.Entity<User>().Property(u => u.MonthlyIncome).HasPrecision(18, 2);
+            modelBuilder.Entity<User>().Property(u => u.YearlyIncome).HasPrecision(18, 2);
+                
             modelBuilder.Entity<Category>().HasMany(c => c.Expenses).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
             modelBuilder.Entity<Category>().HasMany(c => c.Budgets).WithOne(b => b.Category).HasForeignKey(b => b.CategoryId);
 
@@ -39,7 +39,6 @@ namespace DataContext
 
             modelBuilder.Entity<Expense>().Property(e => e.TotalAmount).HasColumnType("decimal(18,2)"); 
             modelBuilder.Entity<Expense>() .Property(e => e.InstallmentAmount).HasColumnType("decimal(18,2)");
-            modelBuilder.Entity<Income>().Property(i => i.Amount).HasColumnType("decimal(18,2)");
             modelBuilder.Entity<Event>() .Property(ev => ev.Budget).HasColumnType("decimal(18,2)");
             base.OnModelCreating(modelBuilder);
         }

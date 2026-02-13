@@ -8,19 +8,12 @@ namespace Common.Dto
 {
     public class UserDto
     {
-        public string? Name { get; set; }
-        public string? Phone { get; set; }
-        public string Email { get; set; }= null!;
-        public DateTime CreatedAt { get; set; }
-    }
-
-    public class UserAdminDto
-    {
         public int Id { get; set; }
         public string? Name { get; set; }
         public string? Phone { get; set; }
-        public string Email { get; set; } = null!;
-        public DateTime CreatedAt { get; set; }
+        public string Email { get; set; }= null!;
+        public DateTime CreatedAt { get; set; } 
+        public DateTime LastLoginAt { get; set; }
     }
 
     public class UserUpdateDto
@@ -28,16 +21,9 @@ namespace Common.Dto
         public string? Name { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
-        public string? Password { get; set; }
+        public decimal? MonthlyIncome { get; set; }
+        public decimal? YearlyIncome { get; set; }
     }
-
-    public class UserAdminUpdateDto
-    {
-        public string? Name { get; set; }
-        public string? Phone { get; set; }
-        public string? Email { get; set; }
-    }
-
     public class UserCreateDto
     {
         public string? Name { get; set; }

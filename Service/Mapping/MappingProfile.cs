@@ -37,7 +37,6 @@ namespace Service.Mapping
                 .ForMember(dest => dest.Expenses, opt => opt.Ignore())
                 .ForMember(dest => dest.Events, opt => opt.Ignore())
                 .ForMember(dest => dest.Budgets, opt => opt.Ignore())
-                .ForMember(dest => dest.Incomes, opt => opt.Ignore())
                 .ForMember(dest => dest.Alerts, opt => opt.Ignore());
 
             // UpdateDto -> Entity (only update non-null fields)
@@ -46,7 +45,16 @@ namespace Service.Mapping
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.PhoneNumber, opt => opt.Condition(src => src.Phone != null))
                 .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.Phone))
-                .ForMember(dest => dest.Email, opt => opt.Condition(src => src.Email != null));
+                .ForMember(dest => dest.Email, opt => opt.Condition(src => src.Email != null))
+            .ForMember(dest => dest.MonthlyIncome, opt =>
+            {
+                opt.Condition(src => src.MonthlyIncome != null || src.YearlyIncome != null);
+
+                opt.MapFrom(src =>
+                    src.MonthlyIncome ??
+                    (src.YearlyIncome.HasValue ? src.YearlyIncome.Value / 12 : (decimal?)null)
+                );
+            });
 
             // ========================================
             // EXPENSE MAPPINGS
@@ -80,27 +88,6 @@ namespace Service.Mapping
                 .ForMember(dest => dest.MerchantName, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.TransactionDate, opt => opt.MapFrom(src => src.Date));
 
-            // ========================================
-            // INCOME MAPPINGS
-            // ========================================
-
-            // Entity -> Dto
-            CreateMap<Income, IncomeDto>();
-
-            // CreateDto -> Entity
-            CreateMap<IncomeCreateDto, Income>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.User, opt => opt.Ignore());
-
-            // UpdateDto -> Entity
-            CreateMap<IncomeUpdateDto, Income>()
-                .ForMember(dest => dest.Source, opt => opt.Condition(src => src.Source != null))
-                .ForMember(dest => dest.Amount, opt => opt.Condition(src => src.Amount != null))
-                .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.Amount!.Value))
-                .ForMember(dest => dest.Date, opt => opt.Condition(src => src.Date != null))
-                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date!.Value))
-                .ForMember(dest => dest.IsRecurring, opt => opt.Condition(src => src.IsRecurring != null))
-                .ForMember(dest => dest.IsRecurring, opt => opt.MapFrom(src => src.IsRecurring!.Value));
 
             // ========================================
             // BUDGET MAPPINGS
