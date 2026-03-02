@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Repository.Entities;
+using Repository.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace DataContext
 {
-    public class SmartFinanceContext : DbContext
+    public class SmartFinanceContext : DbContext,IContext
     {
         public SmartFinanceContext(DbContextOptions<SmartFinanceContext> options) : base(options)
         {
@@ -21,6 +22,11 @@ namespace DataContext
         public DbSet<Event> Events { get; set; }
         public DbSet<Budget> Budgets { get; set; }
         public DbSet<Alert> Alerts { get; set; }
+
+        public async Task Save()
+        {
+             await SaveChangesAsync();
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             

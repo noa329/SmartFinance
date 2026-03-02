@@ -1,7 +1,14 @@
 using DataContext;
 using Microsoft.EntityFrameworkCore;
 using Repository;
+using Repository.Entities;
+using Repository.Interfaces;
+using Repository.Repositories;
+using Service.interfaces;
+using Service.Interfaces;
 using Service.Mapping;
+using Service.sevices;
+using Service.Sevices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,9 +17,9 @@ builder.Services.AddDbContext<SmartFinanceContext>(options =>
 
 
 // Add services to the container.
-builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
 
@@ -28,6 +35,18 @@ builder.Services.AddControllers();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+var connection = builder.Configuration.GetConnectionString("SmartFinanceDB");
+
+//builder.Services.AddSingleton<IContext>(new SmartFinanceContext(connection));
+builder.Services.AddScoped<IContext, SmartFinanceContext>();
+
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+builder.Services.AddScoped<IRepository<Budget>, BudgetRepository>();
+builder.Services.AddScoped<IBudgetService, BudgetService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRepository<User>, UserRepository>();
 
 var app = builder.Build();
 
