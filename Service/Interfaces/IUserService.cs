@@ -15,5 +15,7 @@ namespace Service.interfaces
         Task<UserDto> Create(UserCreateDto dto);
         Task<UserDto> Update(int id, UserUpdateDto dto);
         Task Delete(int id);
+        Task<AuthResponseDto> Register(UserCreateDto dto);
+        Task<AuthResponseDto?> Login(UserLoginDto dto);
     }
 }

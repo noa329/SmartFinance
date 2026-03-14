@@ -1,7 +1,8 @@
 ﻿using Common.Dto;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.interfaces;
+using System.Security.Claims;
 
 namespace SmartFinance.Controllers
 {
@@ -15,42 +16,67 @@ namespace SmartFinance.Controllers
         {
             _userService = userService;
         }
-        [HttpGet]
+
+        private int GetUserId()
+        {
+            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("all")]
         public async Task<IActionResult> GetAll()
         {
             var users = await _userService.GetAll();
             return Ok(users);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
         {
-            var user = await _userService.GetById(id);
+            var userId = GetUserId();
+            var user = await _userService.GetById(userId);
+
             if (user == null)
                 return NotFound();
 
             return Ok(user);
         }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register(UserCreateDto dto)
+        [Authorize]
+        [HttpPut("me")]
+        public async Task<IActionResult> Update(UserUpdateDto dto)
         {
-            var user = await _userService.Add(dto);
-            return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, UserUpdateDto dto)
-        {
-            var updated = await _userService.Update(id, dto);
+            var userId = GetUserId();
+            var updated = await _userService.Update(userId, dto);
             return Ok(updated);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [Authorize]
+        [HttpDelete("me")]
+        public async Task<IActionResult> Delete()
         {
-            await _userService.Delete(id);
+            var userId = GetUserId();
+            await _userService.Delete(userId);
             return NoContent();
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(UserCreateDto dto)
+        {
+            var result = await _userService.Register(dto);
+            return Ok(result);
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(UserLoginDto dto)
+        {
+            var result = await _userService.Login(dto);
+
+            if (result == null)
+                return Unauthorized();
+
+            return Ok(result);
         }
     }
 }

@@ -8,6 +8,7 @@ using Service.sevices;
 
 namespace SmartFinance.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class BudgetController : ControllerBase
@@ -18,93 +19,47 @@ namespace SmartFinance.Controllers
         {
             this.service = service;
         }
+        private int UserId =>
+              int.Parse(User.FindFirst("id")?.Value ?? "0");
 
-        // GET: api/Budget
+
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<BudgetDto>>> GetAll()
+        public async Task<ActionResult<List<BudgetDto>>> GetUserBudgets()
         {
-            try
-            {
-                var budgets = await service.GetAll();
-                return Ok(budgets);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            var budgets = await service.GetUserBudgets(UserId);
+            return Ok(budgets);
         }
 
-        // GET: api/Budget/:id
         [HttpGet("{id}")]
-        public async Task<ActionResult<List<BudgetDto>>> GetById(int id)
+        public async Task<ActionResult<BudgetDto>> GetById(int id)
         {
-
-            try
-            {
-                var budget = await service.GetById(id);
-                return Ok(budget);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
-
+            var budget = await service.GetById(id, UserId);
+            return Ok(budget);
         }
 
-        // POST: api/Budget
         [HttpPost]
-        public async Task<ActionResult<BudgetDto>> Create( [FromBody] BudgetCreateDto budgetDto)
+        public async Task<ActionResult<BudgetDto>> Create(BudgetCreateDto dto)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst("id")?.Value ?? "0");
-                budgetDto.UserId = userId;
-                var createdBudget = await service.Add(budgetDto);
-                return CreatedAtAction(nameof(GetById), new { id = createdBudget.Id }, createdBudget);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            var created = await service.Add(dto, UserId);
 
+            return CreatedAtAction(nameof(GetById),
+                new { id = created.Id },
+                created);
         }
 
-        // PATCH: api/Budget/:id
         [HttpPatch("{id}")]
-        public async Task<ActionResult<BudgetDto>> Update(int id, [FromBody] BudgetUpdateDto updateDto)
+        public async Task<ActionResult<BudgetDto>> Update(int id, BudgetUpdateDto dto)
         {
-            try
-            {
-                var updated = await service.Update(id, updateDto);
-                return Ok(updated);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            var updated = await service.Update(id, dto, UserId);
+            return Ok(updated);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                await service.Delete(id);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            await service.Delete(id, UserId);
+            return NoContent();
         }
+
     }
 }

@@ -35,7 +35,10 @@ namespace DataContext
             modelBuilder.Entity<User>().HasMany(u => u.Budgets).WithOne(b => b.User).HasForeignKey(b => b.UserId);
             modelBuilder.Entity<User>().Property(u => u.MonthlyIncome).HasPrecision(18, 2);
             modelBuilder.Entity<User>().Property(u => u.YearlyIncome).HasPrecision(18, 2);
-                
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+            modelBuilder.Entity<User>().HasMany(u => u.Categories).WithOne(c => c.User).HasForeignKey(c => c.UserId);
+
+
             modelBuilder.Entity<Category>().HasMany(c => c.Expenses).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
             modelBuilder.Entity<Category>().HasMany(c => c.Budgets).WithOne(b => b.Category).HasForeignKey(b => b.CategoryId);
 

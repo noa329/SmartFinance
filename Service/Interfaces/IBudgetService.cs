@@ -4,10 +4,16 @@ namespace Service.Interfaces
 {
     public interface IBudgetService
     {
-        Task<List<BudgetDto>> GetAll();
-        Task<BudgetDto?> GetById(int id);
-        Task<BudgetDto> Add(BudgetCreateDto dto);
-        Task<BudgetDto> Update(int id, BudgetUpdateDto dto);
-        Task Delete(int id);
+        Task<List<BudgetDto>> GetUserBudgets(int userId);
+
+        Task<BudgetDto?> GetById(int id, int userId);
+
+        Task<BudgetDto> Add(BudgetCreateDto dto, int userId);
+
+        Task<BudgetDto> Update(int id, BudgetUpdateDto dto, int userId);
+
+        Task Delete(int id, int userId);
+
+        Task CheckBudgetLimit(int userId);
     }
 }

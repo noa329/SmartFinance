@@ -122,7 +122,12 @@ namespace DataContext.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Categories");
                 });
@@ -262,6 +267,9 @@ namespace DataContext.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("Users");
                 });
 
@@ -291,6 +299,15 @@ namespace DataContext.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Repository.Entities.Category", b =>
+                {
+                    b.HasOne("Repository.Entities.User", "User")
+                        .WithMany("Categories")
+                        .HasForeignKey("UserId");
 
                     b.Navigation("User");
                 });
@@ -348,6 +365,8 @@ namespace DataContext.Migrations
                     b.Navigation("Alerts");
 
                     b.Navigation("Budgets");
+
+                    b.Navigation("Categories");
 
                     b.Navigation("Events");
 

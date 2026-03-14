@@ -127,11 +127,14 @@ namespace Service.Mapping
                 .ForMember(dest => dest.IsSystem, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.Expenses, opt => opt.Ignore())
+                .ForMember(dest => dest.UserId, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore())
                 .ForMember(dest => dest.Budgets, opt => opt.Ignore());
 
             // UpdateDto -> Entity
             CreateMap<CategoryUpdateDto, Category>()
                 .ForMember(dest => dest.Name, opt => opt.Condition(src => src.Name != null))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.IsFixed, opt => opt.Condition(src => src.IsFixed != null))
                 .ForMember(dest => dest.IsFixed, opt => opt.MapFrom(src => src.IsFixed!.Value));
 

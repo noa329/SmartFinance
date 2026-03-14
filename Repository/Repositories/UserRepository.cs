@@ -53,10 +53,15 @@ namespace Repository.Repositories
 
         public async Task<User> Update(int id, User entity)
         {
+            entity.Email = entity.Email.ToLower();
             var existingUser = await GetById(id);
             if (existingUser == null)
                 throw new KeyNotFoundException("User not found");
-            
+
+            var emailExists = await ctx.Users.AnyAsync(u => u.Email.ToLower() == entity.Email.ToLower() && u.Id != id);
+            if (emailExists)
+                throw new InvalidOperationException("Email already exists");
+
             existingUser.FullName = entity.FullName;
             existingUser.Email = entity.Email;
             existingUser.PhoneNumber = entity.PhoneNumber;

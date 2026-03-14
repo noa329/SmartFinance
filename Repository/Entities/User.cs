@@ -38,10 +38,13 @@ namespace Repository.Entities
         public decimal? MonthlyIncome { get; set; }
         public decimal? YearlyIncome { get; set; }
 
+        public bool IsAlertEnabled { get; set; } = true;
 
+        public double? AlertPercentage { get; set; }
         public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
         public ICollection<Event> Events { get; set; } = new List<Event>();
         public ICollection<Budget> Budgets { get; set; } = new List<Budget>();
         public ICollection<Alert> Alerts { get; set; } = new List<Alert>();
+        public ICollection<Category> Categories { get; set; } = new List<Category>();
     }
 }

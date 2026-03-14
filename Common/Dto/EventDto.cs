@@ -17,6 +17,9 @@ namespace Common.Dto
         public List<int> ExpenseIds { get; set; } = new();
 
         public List<ExpenseDto>? Expenses { get; set; }
+        public decimal TotalSpent { get; set; }
+        public decimal RemainingBudget { get; set; }
+        public double Progress { get; set; }
     }
 
     public class EventCreateDto

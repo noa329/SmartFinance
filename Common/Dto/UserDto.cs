@@ -37,5 +37,10 @@ namespace Common.Dto
         public string Email { get; set; } = null!;
         public string Password { get; set; } = null!;
     }
+    public class AuthResponseDto
+    {
+        public UserDto User { get; set; } = null!;
+        public string Token { get; set; } = null!;
+    }
 }
 
