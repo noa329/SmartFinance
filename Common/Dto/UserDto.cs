@@ -42,5 +42,11 @@ namespace Common.Dto
         public UserDto User { get; set; } = null!;
         public string Token { get; set; } = null!;
     }
+
+    public class SetIncomeDto
+    {
+        public decimal Amount { get; set; }
+        public bool IsYearly { get; set; } 
+    }
 }
 

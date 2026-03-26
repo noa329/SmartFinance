@@ -11,6 +11,7 @@ namespace Common.Dto
         public int Id { get; set; }
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = null!;
+        public decimal? CalculatedAmount { get; set; }
         public int Percentage { get; set; }
         public bool AlertEnabled { get; set; }
         public int AlertThreshold { get; set; }
@@ -28,6 +29,8 @@ namespace Common.Dto
     {
         public int? CategoryId { get; set; }
         public int? Percentage { get; set; }
+        public decimal? CalculatedAmount { get; set; }
+
         public bool? AlertEnabled { get; set; }
         public int? AlertThreshold { get; set; }
     }

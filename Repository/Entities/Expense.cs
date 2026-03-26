@@ -35,5 +35,12 @@ namespace Repository.Entities
         [MaxLength(100)]
         public string Source { get; set; } = null!;
         public string OriginalText { get; set; } = null!;
+
+        public bool IsRecurring { get; set; } 
+
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+
+        public int? DayOfMonth { get; set; } 
     }
 }

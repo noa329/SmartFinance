@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Service.Interfaces;
 
-namespace API.Controllers
+namespace SmartFinance.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

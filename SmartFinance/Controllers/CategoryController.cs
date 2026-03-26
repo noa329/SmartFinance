@@ -1,7 +1,9 @@
 ﻿using Common.Dto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Service.Interfaces;
 using Service.Services;
+using System.Security.Claims;
 
 namespace SmartFinance.Controllers
 {
@@ -10,16 +12,16 @@ namespace SmartFinance.Controllers
     [Authorize]
     public class CategoryController : ControllerBase
     {
-        private readonly CategoryService _categoryService;
+        private readonly ICategoryService _categoryService;
 
-        public CategoryController(CategoryService categoryService)
+        public CategoryController(ICategoryService categoryService)
         {
             _categoryService = categoryService;
         }
 
         private int GetUserId()
         {
-            return int.Parse(User.FindFirst("id")!.Value);
+            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         }
 
         // ======================

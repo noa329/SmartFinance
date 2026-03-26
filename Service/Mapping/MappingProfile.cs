@@ -64,13 +64,21 @@ namespace Service.Mapping
             CreateMap<Expense, ExpenseDto>()
                 .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.TotalAmount))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.MerchantName ?? ""))
-                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.TransactionDate));
+                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.TransactionDate))
+                .ForMember(dest => dest.IsRecurring, opt => opt.MapFrom(src => src.IsRecurring))
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
+                .ForMember(dest => dest.DayOfMonth, opt => opt.MapFrom(src => src.DayOfMonth));
 
             // CreateDto -> Entity
             CreateMap<createExpenseDto, Expense>()
                 .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Amount))
                 .ForMember(dest => dest.MerchantName, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.TransactionDate, opt => opt.MapFrom(src => src.Date))
+                .ForMember(dest => dest.IsRecurring, opt => opt.MapFrom(src => src.IsRecurring))
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
+                .ForMember(dest => dest.DayOfMonth, opt => opt.MapFrom(src => src.DayOfMonth))
                 .ForMember(dest => dest.InstallmentsCount, opt => opt.MapFrom(src => 1))
                 .ForMember(dest => dest.InstallmentAmount, opt => opt.MapFrom(src => src.Amount))
                 .ForMember(dest => dest.FirstInstallmentDate, opt => opt.MapFrom(src => src.Date))
@@ -86,8 +94,11 @@ namespace Service.Mapping
             CreateMap<updateExpenseDto, Expense>()
                 .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Amount))
                 .ForMember(dest => dest.MerchantName, opt => opt.MapFrom(src => src.Description))
-                .ForMember(dest => dest.TransactionDate, opt => opt.MapFrom(src => src.Date));
-
+                .ForMember(dest => dest.TransactionDate, opt => opt.MapFrom(src => src.Date))
+                .ForMember(dest => dest.IsRecurring, opt => opt.MapFrom(src => src.IsRecurring))
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
+                .ForMember(dest => dest.DayOfMonth, opt => opt.MapFrom(src => src.DayOfMonth));
 
             // ========================================
             // BUDGET MAPPINGS
@@ -95,7 +106,8 @@ namespace Service.Mapping
 
             // Entity -> Dto
             CreateMap<Budget, BudgetDto>()
-                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name));
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
+                .ForMember(dest => dest.CalculatedAmount, opt => opt.MapFrom(src => src.CalculatedAmount));
 
             // CreateDto -> Entity
             CreateMap<BudgetCreateDto, Budget>()
@@ -113,8 +125,8 @@ namespace Service.Mapping
                 .ForMember(dest => dest.AlertEnabled, opt => opt.Condition(src => src.AlertEnabled != null))
                 .ForMember(dest => dest.AlertEnabled, opt => opt.MapFrom(src => src.AlertEnabled!.Value))
                 .ForMember(dest => dest.AlertThreshold, opt => opt.Condition(src => src.AlertThreshold != null))
-                .ForMember(dest => dest.AlertThreshold, opt => opt.MapFrom(src => src.AlertThreshold!.Value));
-
+                .ForMember(dest => dest.AlertThreshold, opt => opt.MapFrom(src => src.AlertThreshold!.Value))
+                .ForMember(dest => dest.CalculatedAmount, opt => opt.MapFrom(src => src.CalculatedAmount));
             // ========================================
             // CATEGORY MAPPINGS
             // ========================================

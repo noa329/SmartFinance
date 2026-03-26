@@ -30,18 +30,18 @@ namespace DataContext
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             
-            modelBuilder.Entity<User>().HasMany(u => u.Expenses).WithOne(e => e.User).HasForeignKey(e => e.UserId);
+            modelBuilder.Entity<User>().HasMany(u => u.Expenses).WithOne(e => e.User).HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<User>().HasMany(u => u.Events).WithOne(ev => ev.User).HasForeignKey(ev => ev.UserId);
-            modelBuilder.Entity<User>().HasMany(u => u.Budgets).WithOne(b => b.User).HasForeignKey(b => b.UserId);
+            modelBuilder.Entity<User>().HasMany(u => u.Budgets).WithOne(b => b.User).HasForeignKey(b => b.UserId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<User>().Property(u => u.MonthlyIncome).HasPrecision(18, 2);
             modelBuilder.Entity<User>().Property(u => u.YearlyIncome).HasPrecision(18, 2);
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
-            modelBuilder.Entity<User>().HasMany(u => u.Categories).WithOne(c => c.User).HasForeignKey(c => c.UserId);
-
+            modelBuilder.Entity<User>().HasMany(u => u.Categories).WithOne(c => c.User).HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Category>().HasMany(c => c.Expenses).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
             modelBuilder.Entity<Category>().HasMany(c => c.Budgets).WithOne(b => b.Category).HasForeignKey(b => b.CategoryId);
-
+            modelBuilder.Entity<Category>().Property(c => c.BudgetLimit).HasColumnType("decimal(18,2)");
+ 
             modelBuilder.Entity<Event>().HasMany(ev => ev.Expenses).WithOne(e => e.Event).HasForeignKey(e => e.EventId);
 
             modelBuilder.Entity<Alert>().HasOne(a => a.User).WithMany(u => u.Alerts).HasForeignKey(a => a.UserId);
@@ -49,6 +49,8 @@ namespace DataContext
             modelBuilder.Entity<Expense>().Property(e => e.TotalAmount).HasColumnType("decimal(18,2)"); 
             modelBuilder.Entity<Expense>() .Property(e => e.InstallmentAmount).HasColumnType("decimal(18,2)");
             modelBuilder.Entity<Event>() .Property(ev => ev.Budget).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Budget>().Property(b => b.CalculatedAmount).HasPrecision(18, 2);
+    
             base.OnModelCreating(modelBuilder);
         }
     }

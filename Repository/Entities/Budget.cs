@@ -23,5 +23,6 @@ namespace Repository.Entities
         public int Percentage { get; set; } 
         public bool AlertEnabled { get; set; } = true;
         public int AlertThreshold { get; set; } = 80;
+        public decimal? CalculatedAmount { get; set; }
     }
 }

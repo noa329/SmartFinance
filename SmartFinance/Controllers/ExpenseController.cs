@@ -4,38 +4,41 @@ using Microsoft.AspNetCore.Mvc;
 using Repository.Entities;
 using Service.Interfaces;
 
-[Authorize]
-[ApiController]
-[Route("api/expenses")]
-public class ExpenseController : ControllerBase
+namespace SmartFinance.Controllers
 {
-    private readonly IExpenseService _service;
-
-    public ExpenseController(IExpenseService service)
+    [Authorize]
+    [ApiController]
+    [Route("api/expenses")]
+    public class ExpenseController : ControllerBase
     {
-        _service = service;
-    }
+        private readonly IExpenseService _service;
 
-    private int UserId =>
-        int.Parse(User.Claims.First(c => c.Type == "id").Value);
+        public ExpenseController(IExpenseService service)
+        {
+            _service = service;
+        }
 
-    [HttpGet]
-    public async Task<IActionResult> Get()
-    {
-        return Ok(await _service.GetUserExpenses(UserId));
-    }
+        private int UserId =>
+            int.Parse(User.Claims.First(c => c.Type == "id").Value);
 
-    [HttpPost]
-    public async Task<IActionResult> Create(createExpenseDto dto)
-    {
-        await _service.AddExpense(dto, UserId);
-        return Ok();
-    }
+        [HttpGet]
+        public async Task<IActionResult> Get()
+        {
+            return Ok(await _service.GetUserExpenses(UserId));
+        }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        await _service.DeleteExpense(id, UserId);
-        return Ok();
+        [HttpPost]
+        public async Task<IActionResult> Create(createExpenseDto dto)
+        {
+            await _service.AddExpense(dto, UserId);
+            return Ok();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            await _service.DeleteExpense(id, UserId);
+            return Ok();
+        }
     }
 }

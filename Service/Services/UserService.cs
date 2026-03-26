@@ -5,6 +5,7 @@ using Repository.Entities;
 using Repository.Interfaces;
 using Repository.Repositories;
 using Service.interfaces;
+using Service.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -15,17 +16,20 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace Service.sevices
+namespace Service.Services
 {
     public class UserService : IUserService
     {
         private readonly IRepository<User> _userRepository;
         private readonly IMapper _mapper;
+        private readonly IInitialLoginService _initialLoginService;
 
-        public UserService(IRepository<User> userRepository, IMapper mapper)
+        public UserService(IRepository<User> userRepository, IMapper mapper, IInitialLoginService initialLoginService)
         {
             _userRepository = userRepository;
             _mapper = mapper;
+            _initialLoginService = initialLoginService;
+
         }
 
         // ============================
@@ -153,6 +157,7 @@ namespace Service.sevices
             user.LastLoginAt = DateTime.UtcNow;
 
             await _userRepository.Add(user);
+            await _initialLoginService.InitializeUserCategories(user.Id);
 
             var token = GenerateJwtToken(user);
 

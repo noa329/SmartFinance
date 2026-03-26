@@ -1,10 +1,13 @@
 ﻿using Common.Dto;
 
-public interface IAlertService
+namespace Service.Interfaces
 {
-    Task<List<AlertDto>> GetUserAlerts(int userId);
+    public interface IAlertService
+    {
+        Task<List<AlertDto>> GetUserAlerts(int userId);
 
-    Task CreateAlert(AlertCreateDto dto, int userId);
+        Task CreateAlert(AlertCreateDto dto, int userId);
 
-    Task MarkAsRead(int alertId, int userId);
+        Task MarkAsRead(int alertId, int userId);
+    }
 }

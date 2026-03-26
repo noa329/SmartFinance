@@ -85,6 +85,10 @@ namespace DataContext.Migrations
                     b.Property<int>("AlertThreshold")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("CalculatedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
@@ -110,6 +114,9 @@ namespace DataContext.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("BudgetLimit")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsFixed")
                         .HasColumnType("bit");
@@ -175,6 +182,12 @@ namespace DataContext.Migrations
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("DayOfMonth")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("EventId")
                         .HasColumnType("int");
 
@@ -186,6 +199,9 @@ namespace DataContext.Migrations
 
                     b.Property<int>("InstallmentsCount")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("bit");
 
                     b.Property<string>("MerchantName")
                         .IsRequired()
@@ -200,6 +216,9 @@ namespace DataContext.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
@@ -229,6 +248,9 @@ namespace DataContext.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<double?>("AlertPercentage")
+                        .HasColumnType("float");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -241,6 +263,9 @@ namespace DataContext.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsAlertEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
@@ -295,7 +320,7 @@ namespace DataContext.Migrations
                     b.HasOne("Repository.Entities.User", "User")
                         .WithMany("Budgets")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Category");
@@ -307,7 +332,8 @@ namespace DataContext.Migrations
                 {
                     b.HasOne("Repository.Entities.User", "User")
                         .WithMany("Categories")
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
                 });
@@ -338,7 +364,7 @@ namespace DataContext.Migrations
                     b.HasOne("Repository.Entities.User", "User")
                         .WithMany("Expenses")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Category");

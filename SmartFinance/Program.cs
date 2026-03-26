@@ -10,8 +10,6 @@ using Service.interfaces;
 using Service.Interfaces;
 using Service.Mapping;
 using Service.Services;
-using Service.sevices;
-using Service.Sevices;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -85,6 +83,7 @@ builder.Services.AddScoped<IRepository<Budget>, BudgetRepository>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 
 builder.Services.AddScoped<IRepository<Category>, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 
 builder.Services.AddScoped<IInitialLoginService, InitialLoginService>();
@@ -92,10 +91,14 @@ builder.Services.AddScoped<IInitialLoginService, InitialLoginService>();
 builder.Services.AddScoped<IRepository<Alert>, AlertRepository>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 
+builder.Services.AddScoped<IRepository<Event>, EventRepository>();
+builder.Services.AddScoped<IEventService, EventService>();
+
 builder.Services.AddScoped<IPredictionService, PredictionService>();
 
 builder.Services.AddScoped<IRepository<Expense>, ExpenseRepository>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
+
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<EmailService>();

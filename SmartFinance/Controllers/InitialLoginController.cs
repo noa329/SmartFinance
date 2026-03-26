@@ -1,32 +1,58 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Common.Dto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Repository.Entities;
 using Service.Interfaces;
+using System.Security.Claims;
 
-[ApiController]
-[Route("api/initial")]
-[Authorize]
-public class InitialLoginController : ControllerBase
+namespace SmartFinance.Controllers
 {
-    private readonly IInitialLoginService _service;
-
-    public InitialLoginController(IInitialLoginService service)
+    [ApiController]
+    [Route("api/initial")]
+    [Authorize]
+    public class InitialLoginController : ControllerBase
     {
-        _service = service;
-    }
+        private readonly IInitialLoginService _service;
 
-    private int UserId =>
-        int.Parse(User.FindFirst("id")!.Value);
+        public InitialLoginController(IInitialLoginService service)
+        {
+            _service = service;
+        }
 
-    [HttpPost("income")]
-    public async Task SetIncome(decimal income)
-    {
-        await _service.SetInitialIncome(UserId, income);
-    }
+        private int UserId =>
+            int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-    [HttpPost("categories/init")]
-    public async Task InitCategories()
-    {
-        await _service.InitializeUserCategories(UserId);
+        [HttpPost("income")]
+        public async Task<IActionResult> SetIncome([FromBody] SetIncomeDto dto)
+        {
+            await _service.SetInitialIncome(UserId, dto.Amount, dto.IsYearly);
+            return Ok();
+        }
+
+        [HttpPost("categories/init")]
+        public async Task InitCategories()
+        {
+            await _service.InitializeUserCategories(UserId);
+        }
+
+        [HttpGet("budget/calculate")]
+        public async Task<ActionResult<List<BudgetDto>>> CalculateBudget()
+        {
+            var result = await _service.CalculateBudget(UserId);
+            return Ok(result);
+        }
+
+        [HttpGet("budget/calculate-monthly")]
+        public async Task<ActionResult<List<BudgetDto>>> CalculateBudgetMonthly([FromQuery] int? year, [FromQuery] int? month)
+        {
+            DateTime? targetMonth = null;
+            if (year.HasValue && month.HasValue)
+            {
+                targetMonth = new DateTime(year.Value, month.Value, 1);
+            }
+
+            var result = await _service.CalculateBudgetMonthly(UserId, targetMonth);
+            return Ok(result);
+        }
     }
 }

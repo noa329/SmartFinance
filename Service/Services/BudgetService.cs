@@ -4,7 +4,7 @@ using Repository.Entities;
 using Repository.Interfaces;
 using Service.Interfaces;
 
-namespace Service.Sevices
+namespace Service.Services
 {
     public class BudgetService : IBudgetService
     {
@@ -61,9 +61,15 @@ namespace Service.Sevices
 
         public async Task<BudgetDto> Add(BudgetCreateDto dto, int userId)
         {
+            var existing = await _budgetRepository
+                 .Find(b => b.UserId == userId && b.CategoryId == dto.CategoryId);
+
+            if (existing.Any())
+                throw new Exception("Budget for this category already exists");
+
+
             var entity = _mapper.Map<Budget>(dto);
 
-            // קובע את המשתמש מהטוקן
             entity.UserId = userId;
 
             await _budgetRepository.Add(entity);
