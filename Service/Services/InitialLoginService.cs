@@ -33,11 +33,15 @@ namespace Service.Services
         {
             return new List<Category>
     {
-        new Category { Name = "שכר דירה", IsFixed = true },
-        new Category { Name = "חשבונות", IsFixed = true },
-        new Category { Name = "אוכל", IsFixed = false },
-        new Category { Name = "בילויים", IsFixed = false },
-        new Category { Name = "תחבורה", IsFixed = false }
+
+        new Category { Name = "אחר", IsFixed = true ,IsSystem=true},
+        new Category { Name = "קניות", IsFixed = true ,IsSystem=true},
+        new Category { Name = "שכר דירה", IsFixed = true ,IsSystem=true},
+        new Category { Name = "חשבונות", IsFixed = true ,IsSystem=true},
+        new Category { Name = "אוכל", IsFixed = false ,IsSystem=true},
+        new Category { Name = "בריאות", IsFixed = false, IsSystem = true },
+        new Category { Name = "בילויים", IsFixed = false ,IsSystem=true},
+        new Category { Name = "תחבורה", IsFixed = false ,IsSystem=true}
     };
         }
 
@@ -82,25 +86,57 @@ namespace Service.Services
         // Categories Initialization
         // ============================
 
+        //public async Task InitializeUserCategories(int userId)
+        //{
+        //    var defaultCategories = GetDefaultCategories();
+        //    var existingCategories = await _categoryRepository.GetAll(); 
+
+        //    foreach (var category in defaultCategories)
+        //    {
+        //        if (existingCategories.Any(c => c.UserId == userId && c.Name == category.Name))
+        //            continue;
+
+        //        var userCategory = new Category
+        //        {
+        //            Name = category.Name,
+        //            IsFixed = category.IsFixed,
+        //            IsSystem = true,
+        //            UserId = userId
+        //        };
+
+        //        await _categoryRepository.Add(userCategory);
+        //    }
+        //}
         public async Task InitializeUserCategories(int userId)
         {
+            Console.WriteLine($"[InitCategories] Initializing categories for User: {userId}");
+
             var defaultCategories = GetDefaultCategories();
-            var existingCategories = await _categoryRepository.GetAll(); 
+
+            // ✅ תיקון: בדיקה רק לקטגוריות של המשתמש הזה
+            var existingCategories = await _categoryRepository.Find(c => c.UserId == userId);
+
+            Console.WriteLine($"[InitCategories] User already has {existingCategories.Count()} categories");
 
             foreach (var category in defaultCategories)
             {
-                if (existingCategories.Any(c => c.UserId == userId && c.Name == category.Name))
+                // בדיקה אם כבר קיים
+                if (existingCategories.Any(c => c.Name == category.Name))
+                {
+                    Console.WriteLine($"[InitCategories] ⏭️ Skipping '{category.Name}' (already exists)");
                     continue;
+                }
 
                 var userCategory = new Category
                 {
                     Name = category.Name,
                     IsFixed = category.IsFixed,
-                    IsSystem = true,
-                    UserId = userId
+                    IsSystem = true,  // ✅ זו קטגוריית ברירת מחדל
+                    UserId = userId   // ✅ חובה! שייכת למשתמש הספציפי
                 };
 
                 await _categoryRepository.Add(userCategory);
+                Console.WriteLine($"[InitCategories] ✅ Created category '{category.Name}' for User {userId}");
             }
         }
 

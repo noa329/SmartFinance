@@ -13,6 +13,7 @@ namespace Service.Services
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<User> _userRepository;
         private readonly IRepository<Alert> _alertRepository;
+        private readonly ICategoryService _categoryService;
         private readonly EmailService _emailService;
         private readonly IMapper _mapper;
 
@@ -23,7 +24,8 @@ namespace Service.Services
             IRepository<User> userRepository,
             IRepository<Alert> alertRepository,
             EmailService emailService,
-            IMapper mapper)
+            IMapper mapper,
+            ICategoryService categoryService)
         {
             _expenseRepository = expenseRepository;
             _categoryRepository = categoryRepository;
@@ -31,6 +33,7 @@ namespace Service.Services
             _alertRepository = alertRepository;
             _emailService = emailService;
             _mapper = mapper;
+            _categoryService = categoryService;
         }
 
         public async Task<List<ExpenseDto>> GetUserExpenses(int userId)
@@ -42,18 +45,34 @@ namespace Service.Services
 
         public async Task AddExpense(createExpenseDto dto, int userId)
         {
+
+            int categoryId;
+            string source;
+
+            if (dto.CategoryId != 0)
+            {
+                categoryId = dto.CategoryId;
+                source = "Manual";
+            }
+            else
+            {
+                 categoryId = await _categoryService
+                    .ResolveCategoryId(userId, dto.MerchantName);
+                
+               source = "Mail";
+            }
             var expense = new Expense
             {
                 UserId = userId,
-                MerchantName = dto.Description,
+                MerchantName = dto.MerchantName,
                 TotalAmount = dto.Amount,
                 TransactionDate = dto.Date,
-                CategoryId = dto.CategoryId,
+                CategoryId = categoryId,
                 EventId = dto.EventId,
                 InstallmentsCount = 1,
                 InstallmentAmount = dto.Amount,
                 FirstInstallmentDate = dto.Date,
-                Source = "Manual",
+                Source = source,
                 OriginalText = dto.Description
             };
 
@@ -98,11 +117,11 @@ namespace Service.Services
 
             await _alertRepository.Add(alert);
 
-            await _emailService.SendBudgetAlert(
-                user.Email,
-                category.Name,
-                (double)spent,
-                (double)limit);
+            //await _emailService.SendBudgetAlert(
+            //    user.Email,
+            //    category.Name,
+            //    (double)spent,
+            //    (double)limit);
         }
         public async Task DeleteExpense(int id, int userId)
         {

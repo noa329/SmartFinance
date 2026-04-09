@@ -76,6 +76,8 @@ builder.Services.AddAuthorization();
 // ================= Services =================
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+builder.Services.AddHttpClient<IGooglePlacesService, GooglePlacesService>();
+
 builder.Services.AddScoped<IRepository<User>, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 

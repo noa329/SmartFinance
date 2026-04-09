@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Repository.Entities;
 using Service.Interfaces;
+using System.Security.Claims;
 
 namespace SmartFinance.Controllers
 {
@@ -19,7 +20,7 @@ namespace SmartFinance.Controllers
         }
 
         private int UserId =>
-            int.Parse(User.Claims.First(c => c.Type == "id").Value);
+                 int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         [HttpGet]
         public async Task<IActionResult> Get()

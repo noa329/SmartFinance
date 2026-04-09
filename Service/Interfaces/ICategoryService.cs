@@ -13,5 +13,6 @@ namespace Service.Interfaces
         Task<CategoryDto> Update(int id, CategoryUpdateDto dto, int userId);
 
         Task Delete(int id, int userId);
+        Task<int> ResolveCategoryId(int userId, string merchantName);
     }
 }

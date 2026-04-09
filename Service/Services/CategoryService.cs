@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using Common.Dto;
+using Common.Enum;
 using Repository.Entities;
 using Repository.Interfaces;
+using Repository.Repositories;
 using Service.Interfaces;
 
 namespace Service.Services
@@ -10,11 +12,18 @@ namespace Service.Services
     {
         private readonly IRepository<Category> _categoryRepository;
         private readonly IMapper _mapper;
+        private readonly IGooglePlacesService _googlePlacesService;
+        private readonly IRepository<Expense> _expenseRepository;
 
-        public CategoryService(IRepository<Category> categoryRepository, IMapper mapper)
+
+        public CategoryService(IRepository<Category> categoryRepository, IMapper mapper, 
+            IGooglePlacesService googlePlacesService, IRepository<Expense> expenseRepository)
+
         {
             _categoryRepository = categoryRepository;
             _mapper = mapper;
+            _googlePlacesService = googlePlacesService;
+            _expenseRepository = expenseRepository;
         }
 
         // ======================
@@ -100,5 +109,272 @@ namespace Service.Services
 
             await _categoryRepository.Delete(id);
         }
+
+       
+        public async Task<int> ResolveCategoryId(int userId, string merchantName)
+        {
+            Console.WriteLine($"\n[CategoryResolver] ========================================");
+            Console.WriteLine($"[CategoryResolver] Resolving: '{merchantName}' for User: {userId}");
+            Console.WriteLine($"[CategoryResolver] ========================================");
+
+            var pastExpenses = await _expenseRepository.Find(e =>
+                e.UserId == userId &&
+                e.MerchantName.ToLower().Trim() == merchantName.ToLower().Trim() &&
+                e.CategoryId != 0);
+
+            var lastExpense = pastExpenses.OrderByDescending(e => e.TransactionDate).FirstOrDefault();
+
+            if (lastExpense != null)
+            {
+                Console.WriteLine($"[CategoryResolver] ✅ HISTORY MATCH! Used CategoryId: {lastExpense.CategoryId} (from past expense)");
+                return lastExpense.CategoryId;
+            }
+
+            Console.WriteLine($"[CategoryResolver] No history found for '{merchantName}'");
+
+            var googleTypes = await _googlePlacesService.GetPlaceTypesAsync(merchantName);
+
+            Console.WriteLine($"[CategoryResolver] Google returned {googleTypes.Count} types:");
+            foreach (var type in googleTypes)
+            {
+                Console.WriteLine($"[CategoryResolver]   - {type}");
+            }
+
+            if (!googleTypes.Any())
+            {
+                Console.WriteLine("[CategoryResolver] ⚠️ Google returned no types");
+                return await GetFallbackCategoryId(userId);
+            }
+
+            var userCategories = (await _categoryRepository.Find(c => c.UserId == userId)).ToList();
+
+            Console.WriteLine($"[CategoryResolver] Found {userCategories.Count} categories for User {userId}:");
+            foreach (var cat in userCategories)
+            {
+                Console.WriteLine($"[CategoryResolver]   - {cat.Name} (ID: {cat.Id}, IsSystem: {cat.IsSystem})");
+            }
+
+            if (!userCategories.Any())
+            {
+                Console.WriteLine($"[CategoryResolver] ⚠️ ERROR: No categories found for User {userId}!");
+                Console.WriteLine($"[CategoryResolver] Did you call InitializeUserCategories?");
+                return 1; 
+            }
+
+            var customCategories = userCategories.Where(c => !c.IsSystem).ToList();
+            var systemCategories = userCategories.Where(c => c.IsSystem).ToList();
+
+            Console.WriteLine($"[CategoryResolver] Custom categories: {customCategories.Count}");
+            Console.WriteLine($"[CategoryResolver] System categories: {systemCategories.Count}");
+
+            var matchedCategory = MatchByCategoryLogic(googleTypes, customCategories)
+                                 ?? MatchByCategoryLogic(googleTypes, systemCategories);
+
+            if (matchedCategory != null)
+            {
+                Console.WriteLine($"[CategoryResolver] ✅✅✅ SUCCESS! Matched to: '{matchedCategory.Name}' (ID: {matchedCategory.Id})");
+                return matchedCategory.Id;
+            }
+
+            Console.WriteLine($"[CategoryResolver] ⚠️ No match found - using fallback");
+            return await GetFallbackCategoryId(userId);
+        }
+
+        private async Task<int> GetFallbackCategoryId(int userId)
+        {
+            var userCategories = await _categoryRepository.Find(c => c.UserId == userId);
+
+            var fallback = userCategories.FirstOrDefault(c => c.Name.Contains("אחר"));
+
+            if (fallback != null)
+            {
+                Console.WriteLine($"[CategoryResolver] Fallback: 'אחר' (ID: {fallback.Id})");
+                return fallback.Id;
+            }
+
+            var first = userCategories.FirstOrDefault();
+            if (first != null)
+            {
+                Console.WriteLine($"[CategoryResolver] Fallback: '{first.Name}' (ID: {first.Id})");
+                return first.Id;
+            }
+
+            Console.WriteLine($"[CategoryResolver] ⚠️⚠️⚠️ CRITICAL: No categories at all for User {userId}!");
+            return 1;
+        }
+
+        private Category? MatchByCategoryLogic(List<string> googleTypes, List<Category> categories)
+        {
+            Console.WriteLine($"\n[CategoryResolver] Matching {googleTypes.Count} Google types against {categories.Count} categories...");
+
+            foreach (var type in googleTypes)
+            {
+                var cleanGoogleType = type.Replace("_", " ").ToLower().Trim();
+
+                if (IsGenericType(cleanGoogleType))
+                {
+                    Console.WriteLine($"[CategoryResolver]   ⏭️ Skipping generic type: '{cleanGoogleType}'");
+                    continue;
+                }
+
+                Console.WriteLine($"[CategoryResolver]   🔍 Checking Google type: '{cleanGoogleType}'");
+
+                foreach (var category in categories)
+                {
+                    if (IsMatch(cleanGoogleType, category))
+                    {
+                        Console.WriteLine($"[CategoryResolver]   ✅✅ MATCH FOUND!");
+                        Console.WriteLine($"[CategoryResolver]      Google: '{cleanGoogleType}'");
+                        Console.WriteLine($"[CategoryResolver]      Category: '{category.Name}' (ID: {category.Id})");
+                        return category;
+                    }
+                }
+            }
+
+            Console.WriteLine($"[CategoryResolver]   ❌ No matches found");
+            return null;
+        }
+
+        private bool IsGenericType(string type)
+        {
+            var genericTypes = new[]
+            {
+        "establishment",
+        "point of interest",
+        "service",
+        "place",
+        "store" 
+    };
+
+            return genericTypes.Contains(type);
+        }
+
+        private bool IsMatch(string googleType, Category category)
+        {
+            var synonyms = GetSynonyms(category.Name);
+
+            if (!synonyms.Any())
+                return false;
+
+            foreach (var synonym in synonyms)
+            {
+                var cleanSynonym = synonym.ToLower().Trim();
+
+                if (googleType == cleanSynonym)
+                {
+                    Console.WriteLine($"[CategoryResolver]      ✓ Exact: '{googleType}' == '{cleanSynonym}'");
+                    return true;
+                }
+
+                if (googleType.Contains(cleanSynonym))
+                {
+                    Console.WriteLine($"[CategoryResolver]      ✓ Contains: '{googleType}' contains '{cleanSynonym}'");
+                    return true;
+                }
+
+                if (cleanSynonym.Contains(googleType))
+                {
+                    Console.WriteLine($"[CategoryResolver]      ✓ Contained: '{cleanSynonym}' contains '{googleType}'");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private List<string> GetSynonyms(string categoryName)
+        {
+            return categoryName switch
+            {
+                "קניות" or "בגדים" or "ביגוד" => new List<string>
+        {
+            
+            "clothing store", "clothing", "apparel",
+            "fashion", "boutique", "shoe store",
+            
+            
+            "electronics store", "electronics",
+            "computer store", "mobile phone shop",
+            
+           
+            "shopping mall", "department store",
+            "jewelry store", "gift shop",
+            "home goods store", "furniture store",
+            "book store", "pet store", "toy store",
+            "sporting goods", "hardware store"
+        },
+
+               
+                "אוכל" or "מזון" or "מסעדות" => new List<string>
+        {
+            "restaurant", "cafe", "coffee shop",
+            "bakery", "bar", "fast food",
+            "pizza place", "ice cream shop",
+            "meal takeaway", "meal delivery",
+            "sandwich shop", "breakfast spot",
+            
+            "supermarket", "grocery store", "grocery",
+            "convenience store", "liquor store"
+        },
+
+                
+                "תחבורה" or "רכב" or "נסיעות" => new List<string>
+        {
+            "gas station", "fuel", "petrol station",
+            "parking", "parking lot", "parking garage",
+            
+            "car repair", "car wash", "car dealer",
+            "electric vehicle charging station",
+            
+            "transit station", "bus station", "train station",
+            "subway station", "taxi stand", "car rental",
+            "travel agency"
+        },
+
+                
+                "בריאות" or "פארם" or "רפואה" => new List<string>
+        {
+            "pharmacy", "drugstore", "health",
+            "hospital", "doctor", "dentist",
+            "physiotherapist", "veterinary care",
+            "gym", "fitness center", "spa",
+            "beauty salon", "hair care", "hair salon"
+        },
+
+                
+                "בילויים" or "פנאי" or "בידור" => new List<string>
+        {
+            "movie theater", "cinema",
+            "amusement park", "night club", "bar",
+            "bowling alley", "casino",
+            "museum", "art gallery",
+            "aquarium", "zoo", "stadium",
+            "tourist attraction", "performing arts theater"
+        },
+
+                
+                "חשבונות" or "שירותים" or "תשלומים" => new List<string>
+        {
+            "bank", "atm", "finance",
+            "post office", "accounting",
+            "lawyer", "insurance agency",
+            "electrician", "plumber",
+            "local government office"
+        },
+
+               
+                
+                "שכר דירה" or "דיור" => new List<string>
+        {
+            "real estate agency", "property management",
+            "housing complex", "apartment building"
+        },
+
+                
+                _ => new List<string>()
+            };
+        }
+       
+
     }
 }

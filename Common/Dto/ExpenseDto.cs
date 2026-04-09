@@ -13,7 +13,7 @@ namespace Common.Dto
         public string Description { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public int CategoryId { get; set; }
-        public int EventId { get; set; }
+        public int? EventId { get; set; }
 
         public bool IsRecurring { get; set; }              
         public DateTime? StartDate { get; set; }           
@@ -31,7 +31,8 @@ namespace Common.Dto
         public string Description { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public int CategoryId { get; set; }
-        public int EventId { get; set; }
+        public int? EventId { get; set; }
+        public string MerchantName { get; set; } = string.Empty;
 
         public bool IsRecurring { get; set; }
         public DateTime? StartDate { get; set; }
@@ -50,7 +51,7 @@ namespace Common.Dto
         public string Description { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public int CategoryId { get; set; }
-        public int EventId { get; set; }
+        public int? EventId { get; set; }
 
         public bool IsRecurring { get; set; }
         public DateTime? StartDate { get; set; }

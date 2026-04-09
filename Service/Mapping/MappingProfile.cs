@@ -72,9 +72,9 @@ namespace Service.Mapping
 
             // CreateDto -> Entity
             CreateMap<createExpenseDto, Expense>()
-                .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Amount))
-                .ForMember(dest => dest.MerchantName, opt => opt.MapFrom(src => src.Description))
-                .ForMember(dest => dest.TransactionDate, opt => opt.MapFrom(src => src.Date))
+               .ForMember(dest => dest.MerchantName, opt => opt.MapFrom(src => src.MerchantName)) 
+               .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Amount))
+               .ForMember(dest => dest.TransactionDate, opt => opt.MapFrom(src => src.Date))
                 .ForMember(dest => dest.IsRecurring, opt => opt.MapFrom(src => src.IsRecurring))
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
@@ -83,7 +83,7 @@ namespace Service.Mapping
                 .ForMember(dest => dest.InstallmentAmount, opt => opt.MapFrom(src => src.Amount))
                 .ForMember(dest => dest.FirstInstallmentDate, opt => opt.MapFrom(src => src.Date))
                 .ForMember(dest => dest.Source, opt => opt.MapFrom(src => "Manual"))
-                .ForMember(dest => dest.OriginalText, opt => opt.MapFrom(src => ""))
+                .ForMember(dest => dest.OriginalText, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.UserId, opt => opt.Ignore())
                 .ForMember(dest => dest.User, opt => opt.Ignore())
