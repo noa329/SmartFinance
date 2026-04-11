@@ -284,97 +284,66 @@ namespace Service.Services
 
         private List<string> GetSynonyms(string categoryName)
         {
-            return categoryName switch
+            var name = categoryName.ToLower().Trim();
+
+            return name switch
             {
-                "קניות" or "בגדים" or "ביגוד" => new List<string>
-        {
-            
-            "clothing store", "clothing", "apparel",
-            "fashion", "boutique", "shoe store",
-            
-            
-            "electronics store", "electronics",
-            "computer store", "mobile phone shop",
-            
-           
-            "shopping mall", "department store",
-            "jewelry store", "gift shop",
-            "home goods store", "furniture store",
-            "book store", "pet store", "toy store",
-            "sporting goods", "hardware store"
-        },
+                _ when name.Contains("קניות") || name.Contains("בגדים") || name.Contains("ביגוד")
+                    => new List<string>
+                {
+            "clothing store", "clothing", "apparel", "fashion", "boutique", "shoe store",
+            "electronics store", "electronics", "computer store", "shopping mall",
+            "department store", "jewelry store", "gift shop", "home goods store",
+            "book store", "pet store", "toy store"
+                },
 
-               
-                "אוכל" or "מזון" or "מסעדות" => new List<string>
-        {
-            "restaurant", "cafe", "coffee shop",
-            "bakery", "bar", "fast food",
-            "pizza place", "ice cream shop",
-            "meal takeaway", "meal delivery",
-            "sandwich shop", "breakfast spot",
-            
-            "supermarket", "grocery store", "grocery",
-            "convenience store", "liquor store"
-        },
+                _ when name.Contains("אוכל") || name.Contains("מזון") || name.Contains("מסעד") || name.Contains("קפה")
+                    => new List<string>
+                {
+            "restaurant", "cafe", "coffee shop", "bakery", "bar", "fast food",
+            "pizza place", "ice cream shop", "meal takeaway", "meal delivery",
+            "supermarket", "grocery store", "grocery", "convenience store"
+                },
 
-                
-                "תחבורה" or "רכב" or "נסיעות" => new List<string>
-        {
-            "gas station", "fuel", "petrol station",
-            "parking", "parking lot", "parking garage",
-            
-            "car repair", "car wash", "car dealer",
-            "electric vehicle charging station",
-            
-            "transit station", "bus station", "train station",
-            "subway station", "taxi stand", "car rental",
-            "travel agency"
-        },
+                _ when name.Contains("תחבורה") || name.Contains("רכב") || name.Contains("נסיעות") || name.Contains("אוטו")
+                    => new List<string>
+                {
+            "gas station", "fuel", "petrol station", "parking", "parking lot",
+            "car repair", "car wash", "car dealer", "transit station",
+            "bus station", "train station", "subway station", "taxi stand"
+                },
 
-                
-                "בריאות" or "פארם" or "רפואה" => new List<string>
-        {
-            "pharmacy", "drugstore", "health",
-            "hospital", "doctor", "dentist",
-            "physiotherapist", "veterinary care",
-            "gym", "fitness center", "spa",
-            "beauty salon", "hair care", "hair salon"
-        },
+                _ when name.Contains("בריאות") || name.Contains("פארם") || name.Contains("רפואה") || name.Contains("חולים")
+                    => new List<string>
+                {
+            "pharmacy", "drugstore", "health", "hospital", "doctor", "dentist",
+            "physiotherapist", "gym", "fitness center", "spa", "hair care"
+                },
 
-                
-                "בילויים" or "פנאי" or "בידור" => new List<string>
-        {
-            "movie theater", "cinema",
-            "amusement park", "night club", "bar",
-            "bowling alley", "casino",
-            "museum", "art gallery",
-            "aquarium", "zoo", "stadium",
-            "tourist attraction", "performing arts theater"
-        },
+                _ when name.Contains("בילוי") || name.Contains("פנאי") || name.Contains("בידור") || name.Contains("חופש")
+                    => new List<string>
+                {
+            "movie theater", "cinema", "amusement park", "night club", "bar",
+            "museum", "art gallery", "aquarium", "zoo", "stadium", "tourist attraction"
+                },
 
-                
-                "חשבונות" or "שירותים" or "תשלומים" => new List<string>
-        {
-            "bank", "atm", "finance",
-            "post office", "accounting",
-            "lawyer", "insurance agency",
-            "electrician", "plumber",
-            "local government office"
-        },
+                _ when name.Contains("חשבונות") || name.Contains("שירות") || name.Contains("תשלום") || name.Contains("בנק")
+                    => new List<string>
+                {
+            "bank", "atm", "finance", "post office", "accounting", "lawyer",
+            "insurance agency", "electrician", "plumber", "local government office"
+                },
 
-               
-                
-                "שכר דירה" or "דיור" => new List<string>
-        {
-            "real estate agency", "property management",
-            "housing complex", "apartment building"
-        },
+                _ when name.Contains("דירה") || name.Contains("שכר דירה") || name.Contains("דיור")
+                    => new List<string>
+                {
+            "real estate agency", "property management", "housing complex", "apartment building"
+                },
 
-                
                 _ => new List<string>()
             };
         }
-       
+
 
     }
 }
