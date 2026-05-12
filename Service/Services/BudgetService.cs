@@ -8,219 +8,158 @@ namespace Service.Services
 {
     public class BudgetService : IBudgetService
     {
-        private readonly IRepository<Budget> _budgetRepository;
-        private readonly IRepository<Expense> _expenseRepository;
-        private readonly IRepository<Alert> _alertRepository;
-        private readonly IRepository<Category> _categoryRepository;
-        private readonly IRepository<User> _userRepository;
-        private readonly IContext _context;
+        private readonly IRepository<Budget> _budgetRepo;
+        private readonly IRepository<User> _userRepo;
+        private readonly IRepository<Category> _categoryRepo;
+        private readonly IRepository<Expense> _expenseRepo;
+        private readonly IRepository<Alert> _alertRepo;
         private readonly IMapper _mapper;
 
         public BudgetService(
-            IRepository<Budget> budgetRepository,
-            IRepository<Expense> expenseRepository,
-            IRepository<Alert> alertRepository,
-            IRepository<Category> categoryRepository,
-            IRepository<User> userRepository,
-            IContext context,
+            IRepository<Budget> budgetRepo,
+            IRepository<User> userRepo,
+            IRepository<Category> categoryRepo,
+            IRepository<Expense> expenseRepo,
+            IRepository<Alert> alertRepo,
             IMapper mapper)
         {
-            _budgetRepository = budgetRepository;
-            _expenseRepository = expenseRepository;
-            _alertRepository = alertRepository;
-            _categoryRepository = categoryRepository;
-            _userRepository = userRepository;
-            _context = context;
+            _budgetRepo = budgetRepo;
+            _userRepo = userRepo;
+            _categoryRepo = categoryRepo;
+            _expenseRepo = expenseRepo;
+            _alertRepo = alertRepo;
             _mapper = mapper;
         }
 
-        // =============================
-        // GET ALL
-        // =============================
-
         public async Task<List<BudgetDto>> GetUserBudgets(int userId)
         {
-            // 1. שליפת המשתמש כדי לקבל את ההכנסה שלו
-            // בהנחה שיש לך UserRepository או דרך לשלוף משתמש
-            var user = await _userRepository.GetById(userId);
-            if (user == null || user.MonthlyIncome == null)
-                return new List<BudgetDto>();
+            var user = await _userRepo.GetById(userId);
+            if (user?.MonthlyIncome == null) return new List<BudgetDto>();
 
-            var income = user.MonthlyIncome.Value;
-
-            // 2. שליפת כל הקטגוריות של המשתמש (כולל המערכתיות)
-            var allCategories = await _categoryRepository.Find(c => c.IsSystem || c.UserId == userId);
-
-            // 3. חישוב סך ההוצאות הקבועות (IsFixed)
-            // הערה: כאן כדאי שיהיה שדה ב-Category או ב-Budget שמציין מה הסכום הקבוע של אותה קטגוריה
-            var fixedExpensesTotal = allCategories
-                .Where(c => c.IsFixed)
-                .Sum(c => c.BudgetLimit); // או סכום אחר שאתה מגדיר כ"קבוע"
-
-            var disposableIncome = income - fixedExpensesTotal;
-
-            // 4. שליפת התקציבים (האחוזים)
-            var budgets = await _budgetRepository.Find(b => b.UserId == userId);
+            decimal disposableIncome = await CalculateDisposableIncome(userId, user.MonthlyIncome.Value);
+            var budgets = await _budgetRepo.Find(b => b.UserId == userId);
 
             var dtos = _mapper.Map<List<BudgetDto>>(budgets);
-
-            // 5. חישוב הסכום המחושב לכל שורה
-            foreach (var dto in dtos)
-            {
-                dto.CalculatedAmount = (disposableIncome * dto.Percentage) / 100m;
-            }
+            dtos.ForEach(d => d.CalculatedAmount = (disposableIncome * d.Percentage) / 100m);
 
             return dtos;
         }
 
-        // =============================
-        // GET BY ID
-        // =============================
-
-        public async Task<BudgetDto?> GetById(int id, int userId)
-        {
-            var budget = await _budgetRepository.GetById(id);
-
-            if (budget == null || budget.UserId != userId)
-                throw new KeyNotFoundException("Budget not found");
-
-            return _mapper.Map<BudgetDto>(budget);
-        }
-
-
-        // =============================
-        // ADD — עם validation על אחוזים
-        // =============================
         public async Task<BudgetDto> Add(BudgetCreateDto dto, int userId)
         {
-            var existing = await _budgetRepository
-                .Find(b => b.UserId == userId && b.CategoryId == dto.CategoryId);
+            var existing = await _budgetRepo.Find(b => b.UserId == userId && b.CategoryId == dto.CategoryId);
+            if (existing.Any()) throw new InvalidOperationException("Budget for this category already exists");
 
-            if (existing.Any())
-                throw new Exception("Budget for this category already exists");
-
-            // ✅ בדיקה שהסך לא יעבור 100%
-            var allBudgets = await _budgetRepository.Find(b => b.UserId == userId);
-            var currentTotal = allBudgets.Sum(b => b.Percentage);
-
-            if (currentTotal + dto.Percentage > 100)
-                throw new Exception(
-                    $"Cannot add budget. Current total: {currentTotal}%, " +
-                    $"adding {dto.Percentage}% would exceed 100%");
+            await ValidateTotalPercentage(userId, dto.Percentage);
 
             var entity = _mapper.Map<Budget>(dto);
             entity.UserId = userId;
 
-            await _budgetRepository.Add(entity);
-            await _context.Save();
-
+            await _budgetRepo.Add(entity);
             return _mapper.Map<BudgetDto>(entity);
         }
 
-        // =============================
-        // UPDATE — עם validation על אחוזים
-        // =============================
         public async Task<BudgetDto> Update(int id, BudgetUpdateDto dto, int userId)
         {
-            var entity = await _budgetRepository.GetById(id);
-
-            if (entity == null || entity.UserId != userId)
+            var existingEntity = await _budgetRepo.GetById(id);
+            if (existingEntity == null || existingEntity.UserId != userId)
                 throw new KeyNotFoundException("Budget not found");
 
             if (dto.Percentage.HasValue)
             {
-                // ✅ מחשב את הסך ללא ה-budget הנוכחי
-                var allBudgets = await _budgetRepository.Find(b => b.UserId == userId && b.Id != id);
-                var otherTotal = allBudgets.Sum(b => b.Percentage);
-
-                if (otherTotal + dto.Percentage.Value > 100)
-                    throw new Exception(
-                        $"Cannot update. Other budgets total: {otherTotal}%, " +
-                        $"setting {dto.Percentage}% would exceed 100%");
-
-                entity.Percentage = dto.Percentage.Value;
+                await ValidateTotalPercentage(userId, dto.Percentage.Value, id);
+                existingEntity.Percentage = dto.Percentage.Value;
             }
 
-            if (dto.CategoryId.HasValue) entity.CategoryId = dto.CategoryId.Value;
-            if (dto.AlertEnabled.HasValue) entity.AlertEnabled = dto.AlertEnabled.Value;
-            if (dto.AlertThreshold.HasValue) entity.AlertThreshold = dto.AlertThreshold.Value;
+            if (dto.CategoryId.HasValue) existingEntity.CategoryId = dto.CategoryId.Value;
+            existingEntity.AlertEnabled = dto.AlertEnabled ?? existingEntity.AlertEnabled;
+            existingEntity.AlertThreshold = dto.AlertThreshold ?? existingEntity.AlertThreshold;
 
-            await _context.Save();
-            return _mapper.Map<BudgetDto>(entity);
+            await _budgetRepo.Update(id, existingEntity);
+            return _mapper.Map<BudgetDto>(existingEntity);
         }
-
-        // =============================
-        // DELETE
-        // =============================
 
         public async Task Delete(int id, int userId)
         {
-            var entity = await _budgetRepository.GetById(id);
-
-            if (entity == null || entity.UserId != userId)
-                throw new KeyNotFoundException("Budget not found");
-
-            await _budgetRepository.Delete(id);
-
-            await _context.Save();
+            var entity = await _budgetRepo.GetById(id);
+            if (entity == null || entity.UserId != userId) throw new KeyNotFoundException();
+            await _budgetRepo.Delete(id);
         }
-
 
         public async Task CheckBudgetLimit(int userId, int categoryId, IEmailService emailService)
         {
-            var user = await _userRepository.GetById(userId);
-            if (user == null) return;
-
-            decimal income = user.MonthlyIncome ?? 0;
-
-            var fixedCategories = await _categoryRepository
-                .Find(c => c.IsFixed && (c.UserId == userId || c.IsSystem));
-            decimal fixedTotal = fixedCategories.Sum(c => c.BudgetLimit);
-            decimal disposableIncome = income - fixedTotal;
-
-            // שלוף רק את ה-budget של הקטגוריה הספציפית שהשתנתה
-            var budgets = await _budgetRepository
-                .Find(b => b.UserId == userId && b.CategoryId == categoryId);
-
+            var user = await _userRepo.GetById(userId);
+            var budgets = await _budgetRepo.Find(b => b.UserId == userId && b.CategoryId == categoryId);
             var budget = budgets.FirstOrDefault();
-            if (budget == null || !budget.AlertEnabled) return;
 
-            var expenses = await _expenseRepository
-                .Find(e => e.UserId == userId && e.CategoryId == categoryId);
+            // בדיקת בטיחות שהכל קיים והתראות מאופשרות
+            if (user == null || user.Email == null || budget == null || !budget.AlertEnabled) return;
+
+            decimal disposableIncome = await CalculateDisposableIncome(userId, user.MonthlyIncome ?? 0);
+            decimal budgetLimit = (disposableIncome * budget.Percentage) / 100m;
+
+            // שימוש ב-TransactionDate כפי שמופיע בישות Expense שלך
+            var expenses = await _expenseRepo.Find(e =>
+                e.UserId == userId &&
+                e.CategoryId == categoryId &&
+                e.TransactionDate.Month == DateTime.Now.Month &&
+                e.TransactionDate.Year == DateTime.Now.Year);
 
             decimal totalSpent = expenses.Sum(e => e.TotalAmount);
 
-            // ✅ הנוסחה הנכונה
-            decimal budgetLimit = (disposableIncome * budget.Percentage) / 100m;
-            decimal alertAt = budgetLimit * (budget.AlertThreshold / 100m);
-
-            if (totalSpent >= alertAt)
+            // בדיקה האם עברנו את סף ההתראה (למשל 80%)
+            if (totalSpent >= budgetLimit * (budget.AlertThreshold / 100m))
             {
-                // בדוק שלא שלחנו כבר התראה זהה לאחרונה (אופציונלי)
-                var alert = new Alert
-                {
-                    UserId = userId,
-                    RelatedEntityType = "Category",
-                    RelatedEntityId = categoryId,
-                    Message = $"הוצאת {totalSpent:C} מתוך תקציב של {budgetLimit:C} " +
-                              $"({budget.AlertThreshold}% מהתקציב).",
-                    Title = "חריגה מהתקציב",
-                    Type = "BudgetWarning",
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                await _alertRepository.Add(alert);
-                await _context.Save();
-
-                // ✅ שליחת מייל
-                await emailService.SendBudgetAlert(
-                    toEmail: user.Email,
-                    category: budget.Category?.Name ?? "General", // הגנה מפני Null
-                    spent: (double)totalSpent,
-                    limit: (double)budgetLimit
-                );
+                await CreateAndSendAlert(user, budget, totalSpent, budgetLimit, emailService);
             }
+        }
+
+        private async Task CreateAndSendAlert(User user, Budget budget, decimal spent, decimal limit, IEmailService emailService)
+        {
+            // טיפול בשם הקטגוריה עבור הודעות
+            string categoryName = budget.Category?.Name ?? "כללי";
+
+            var alert = new Alert
+            {
+                UserId = user.Id,
+                Title = "התראת תקציב",
+                Message = $"ניצלת {spent:N0}₪ מתוך תקציב של {limit:N0}₪ בקטגוריית {categoryName}",
+                Type = "BudgetWarning",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _alertRepo.Add(alert);
+
+            // שליחת המייל באופן אסינכרוני
+            try
+            {
+                await emailService.SendBudgetAlert(user.Email!, categoryName, (double)spent, (double)limit);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
+            }
+        }
+
+        public async Task<BudgetDto?> GetById(int id, int userId)
+        {
+            var budget = await _budgetRepo.GetById(id);
+            if (budget == null || budget.UserId != userId)
+                throw new KeyNotFoundException("Budget not found");
+            return _mapper.Map<BudgetDto>(budget);
+        }
+
+        private async Task<decimal> CalculateDisposableIncome(int userId, decimal income)
+        {
+            var fixedCategories = await _categoryRepo.Find(c => (c.UserId == userId || c.IsSystem) && c.IsFixed);
+            return income - fixedCategories.Sum(c => c.BudgetLimit);
+        }
+
+        private async Task ValidateTotalPercentage(int userId, int newPercentage, int? excludeId = null)
+        {
+            var allBudgets = await _budgetRepo.Find(b => b.UserId == userId && b.Id != excludeId);
+            if (allBudgets.Sum(b => b.Percentage) + newPercentage > 100)
+                throw new ArgumentException("Total budget percentage cannot exceed 100%");
         }
     }
 }

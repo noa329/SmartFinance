@@ -12,17 +12,17 @@ namespace Repository.Repositories
 {
     public class BudgetRepository: IRepository<Budget>
     {
-        private readonly IContext ctx;
+        private readonly IContext _ctx;
 
         public BudgetRepository(IContext context)
         {
-            ctx = context;
+            _ctx = context;
         }
 
         public async Task<Budget> Add(Budget entity)
         {
-            await ctx.Budgets.AddAsync(entity);
-            await ctx.Save();
+            await _ctx.Budgets.AddAsync(entity);
+            await _ctx.Save();
             return entity;
         }
 
@@ -31,24 +31,24 @@ namespace Repository.Repositories
             var budget = await GetById(id);
             if (budget != null)
             {
-                ctx.Budgets.Remove(budget);
-                await ctx.Save();
+                _ctx.Budgets.Remove(budget);
+                await _ctx.Save();
             }
         }
 
         public async Task<List<Budget>> Find(System.Linq.Expressions.Expression<Func<Budget, bool>> predicate)
         {
-            return await ctx.Budgets.Where(predicate).ToListAsync();
+           return await _ctx.Budgets.Include(b => b.Category).Where(predicate).ToListAsync();
         }
 
         public async Task<List<Budget>> GetAll()
         {
-            return await ctx.Budgets.ToListAsync();
+            return await _ctx.Budgets.ToListAsync();
         }
 
         public async Task<Budget?> GetById(int id)
         {
-            return await ctx.Budgets.FirstOrDefaultAsync(x => x.Id == id);
+            return await _ctx.Budgets.Include(b => b.Category).FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<Budget> Update(int id,Budget entity)
@@ -63,7 +63,7 @@ namespace Repository.Repositories
             existingBudget.AlertEnabled = entity.AlertEnabled;
             existingBudget.AlertThreshold = entity.AlertThreshold;
 
-            await ctx.Save();
+            await _ctx.Save();
             return existingBudget;
             
         }
