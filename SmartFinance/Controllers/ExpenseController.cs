@@ -32,7 +32,7 @@ namespace SmartFinance.Controllers
         public async Task<IActionResult> Create(createExpenseDto dto)
         {
             await _service.AddExpense(dto, UserId);
-            return Ok();
+            return Ok(new { message = "Expense added successfully" });
         }
 
         [HttpDelete("{id}")]

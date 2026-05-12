@@ -43,8 +43,47 @@ namespace Service.Services
             return _mapper.Map<List<ExpenseDto>>(expenses);
         }
 
+        //public async Task AddExpense(createExpenseDto dto, int userId)
+        //{
+
+        //    int categoryId;
+        //    string source;
+
+        //    if (dto.CategoryId != 0)
+        //    {
+        //        categoryId = dto.CategoryId;
+        //        source = "Manual";
+        //    }
+        //    else
+        //    {
+        //         categoryId = await _categoryService
+        //            .ResolveCategoryId(userId, dto.MerchantName);
+
+        //       source = "Mail";
+        //    }
+        //    var expense = new Expense
+        //    {
+        //        UserId = userId,
+        //        MerchantName = dto.MerchantName,
+        //        TotalAmount = dto.Amount,
+        //        TransactionDate = dto.Date,
+        //        CategoryId = categoryId,
+        //        EventId = dto.EventId,
+        //        InstallmentsCount = 1,
+        //        InstallmentAmount = dto.Amount,
+        //        FirstInstallmentDate = dto.Date,
+        //        Source = source,
+        //        OriginalText = dto.Description
+        //    };
+
+        //    await _expenseRepository.Add(expense);
+
+        //    await CheckBudgetAlert(expense);
+        //}
+        // Services/ExpenseService.cs
         public async Task AddExpense(createExpenseDto dto, int userId)
         {
+            Console.WriteLine($"\n[ExpenseService] Adding expense for User: {userId}");
 
             int categoryId;
             string source;
@@ -56,11 +95,19 @@ namespace Service.Services
             }
             else
             {
-                 categoryId = await _categoryService
-                    .ResolveCategoryId(userId, dto.MerchantName);
-                
-               source = "Mail";
+                categoryId = await _categoryService.ResolveCategoryId(userId, dto.MerchantName);
+                source = "Mail";
             }
+            if (dto.InstallmentsCount > 1)
+            {
+                dto.StartDate = dto.Date;
+                dto.EndDate = dto.Date.AddMonths(dto.InstallmentsCount - 1);
+
+                //dto.IsRecurring = true;
+                dto.DayOfMonth = dto.Date.Day;
+            }
+
+            // ✅ תיקון: טיפול נכון בתשלומים
             var expense = new Expense
             {
                 UserId = userId,
@@ -69,14 +116,34 @@ namespace Service.Services
                 TransactionDate = dto.Date,
                 CategoryId = categoryId,
                 EventId = dto.EventId,
-                InstallmentsCount = 1,
-                InstallmentAmount = dto.Amount,
-                FirstInstallmentDate = dto.Date,
+
+                // ✅ תשלומים
+                InstallmentsCount = dto.InstallmentsCount > 0 ? dto.InstallmentsCount : 1,
+                InstallmentAmount = dto.InstallmentAmount > 0 ? dto.InstallmentAmount : dto.Amount,
+                FirstInstallmentDate = dto.FirstInstallmentDate ?? dto.Date,
+
+
+                // ✅ הוצאה קבועה
+                IsRecurring = dto.IsRecurring,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                DayOfMonth = dto.DayOfMonth,
+
+                // Metadata
                 Source = source,
-                OriginalText = dto.Description
+                OriginalText = dto.Description ?? "",
+                //StartDate = DateTime.UtcNow
             };
 
+            Console.WriteLine($"[ExpenseService] Expense details:");
+            Console.WriteLine($"  Merchant: {expense.MerchantName}");
+            Console.WriteLine($"  Amount: {expense.TotalAmount:N2}");
+            Console.WriteLine($"  Category: {categoryId}");
+            Console.WriteLine($"  Installments: {expense.InstallmentsCount}x{expense.InstallmentAmount:N2}");
+
             await _expenseRepository.Add(expense);
+
+            Console.WriteLine($"[ExpenseService] ✅ Expense added successfully!");
 
             await CheckBudgetAlert(expense);
         }
