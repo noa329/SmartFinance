@@ -26,13 +26,14 @@ namespace SmartFinance.Controllers
         public async Task<IActionResult> SetIncome([FromBody] SetIncomeDto dto)
         {
             await _service.SetInitialIncome(UserId, dto.Amount, dto.IsYearly);
-            return Ok();
+            return Ok(new { success = true });
         }
 
         [HttpPost("categories/init")]
-        public async Task InitCategories()
+        public async Task<IActionResult> InitCategories()
         {
             await _service.InitializeUserCategories(UserId);
+            return Ok(new { message = "Categories initialized successfully" });
         }
 
         [HttpGet("budget/calculate")]

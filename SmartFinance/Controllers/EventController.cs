@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Interfaces;
+using System.Security.Claims;
 
 namespace SmartFinance.Controllers
 {
@@ -64,9 +65,7 @@ namespace SmartFinance.Controllers
 
         private int GetUserId()
         {
-            return int.Parse(
-                User.Claims.First(c => c.Type == "id").Value
-            );
+            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         }
     }
 }
