@@ -14,6 +14,7 @@ namespace Service.Interfaces
 
         Task Delete(int id, int userId);
 
-        Task CheckBudgetLimit(int userId);
+        //Task CheckBudgetLimit(int userId);
+        Task CheckBudgetLimit(int userId, int categoryId, IEmailService emailService);
     }
 }

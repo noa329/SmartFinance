@@ -9,5 +9,7 @@ namespace Service.Interfaces
         Task CreateAlert(AlertCreateDto dto, int userId);
 
         Task MarkAsRead(int alertId, int userId);
+        Task<int> GetUnreadAlertsCount(int userId);
+
     }
 }

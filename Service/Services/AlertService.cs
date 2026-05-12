@@ -12,16 +12,14 @@ namespace Service.Services
     {
         private readonly IRepository<Alert> _alertRepository;
         private readonly IMapper _mapper;
-        private readonly IContext _context;
 
         public AlertService(
             IRepository<Alert> repository,
-            IMapper mapper,
-            IContext context)
+            IMapper mapper )
+           
         {
             _alertRepository = repository;
             _mapper = mapper;
-            _context = context;
         }
 
         //public async Task<List<AlertDto>> GetUserAlerts(int userId)
@@ -38,34 +36,32 @@ namespace Service.Services
         }
         public async Task<int> GetUnreadAlertsCount(int userId)
         {
-            return await _context.Alerts
-                .Where(a => a.UserId == userId && !a.IsRead)
-                .CountAsync();
+            var unreadAlerts = await _alertRepository.Find(a => a.UserId == userId && !a.IsRead);
+            return unreadAlerts.Count();
         }
         public async Task CreateAlert(AlertCreateDto dto, int userId)
         {
             var alert = _mapper.Map<Alert>(dto);
 
             alert.UserId = userId;
-
+            alert.CreatedAt = DateTime.UtcNow;
             await _alertRepository.Add(alert);
-            await _context.Save();
 
         }
 
         public async Task MarkAsRead(int alertId, int userId)
         {
             var alert = await _alertRepository.GetById(alertId);
+            if (alert == null)
+                throw new KeyNotFoundException($"Alert with ID {alertId} not found.");
 
-            if (alert == null || alert.UserId != userId)
-                throw new Exception("Unauthorized");
+            if (alert.UserId != userId)
+                throw new UnauthorizedAccessException("You do not have permission to modify this alert.");
 
             alert.IsRead = true;
             alert.ReadAt = DateTime.UtcNow;
 
             await _alertRepository.Update(alertId, alert);
-            await _context.Save();
-
         }
 
 

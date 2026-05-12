@@ -29,21 +29,38 @@ namespace SmartFinance.Controllers
             var alerts = await _service.GetUserAlerts(UserId);
             return Ok(alerts);
         }
+        [HttpGet("unread-count")]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            var count = await _service.GetUnreadAlertsCount(UserId);
+            return Ok(count);
+        }
 
         // POST api/alerts
         [HttpPost]
         public async Task<IActionResult> Create(AlertCreateDto dto)
         {
             await _service.CreateAlert(dto, UserId);
-            return Ok();
+            return Ok(201);
         }
 
         // PATCH api/alerts/{id}
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> Read(int id)
+        [HttpPatch("{id}/read")]
+        public async Task<IActionResult> MarkAsRead(int id)
         {
-            await _service.MarkAsRead(id, UserId);
-            return Ok();
+            try
+            {
+                await _service.MarkAsRead(id, UserId);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
         }
     }
 }
