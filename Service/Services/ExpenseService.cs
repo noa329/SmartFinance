@@ -157,9 +157,13 @@ namespace Service.Services
             if (user == null || !user.IsAlertEnabled)
                 return;
 
+            var currentMonth = DateTime.Now.Month;
+            var currentYear = DateTime.Now.Year;
             var expenses = await _expenseRepository.Find(e =>
                 e.UserId == expense.UserId &&
-                e.CategoryId == expense.CategoryId);
+                e.CategoryId == expense.CategoryId &&
+                e.TransactionDate.Month == currentMonth &&
+                e.TransactionDate.Year == currentYear);
 
             decimal spent = expenses.Sum(e => e.TotalAmount);
 

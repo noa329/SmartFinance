@@ -14,6 +14,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 
 namespace Service.Services
@@ -23,13 +24,15 @@ namespace Service.Services
         private readonly IRepository<User> _userRepository;
         private readonly IMapper _mapper;
         private readonly IInitialLoginService _initialLoginService;
+        private readonly IConfiguration _configuration;
 
-        public UserService(IRepository<User> userRepository, IMapper mapper, IInitialLoginService initialLoginService)
+        public UserService(IRepository<User> userRepository, IMapper mapper,
+            IInitialLoginService initialLoginService, IConfiguration configuration)
         {
             _userRepository = userRepository;
             _mapper = mapper;
             _initialLoginService = initialLoginService;
-
+            _configuration = configuration;
         }
 
         // ============================
@@ -128,25 +131,24 @@ namespace Service.Services
         new Claim(ClaimTypes.Email, user.Email),
         new Claim(ClaimTypes.Role, user.Role.ToString())
     };
+            var keyStr = _configuration["JwtSettings:Key"];
+            if (string.IsNullOrEmpty(keyStr)) throw new Exception("JWT Key is missing in config");
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes("THIS_IS_MY_SUPER_SECRET_KEY_12345")
-            );
-
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: "SmartFinance",
-                audience: "SmartFinance",
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(3),
+                expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: creds
             );
-
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
         public async Task<AuthResponseDto> Register(UserCreateDto dto)
         {
+            dto.Email = dto.Email.ToLower().Trim();
             var existing = await _userRepository.Find(u => u.Email == dto.Email);
             if (existing.Any())
                 throw new Exception("Email already exists");
@@ -169,6 +171,7 @@ namespace Service.Services
         }
         public async Task<AuthResponseDto?> Login(UserLoginDto dto)
         {
+            dto.Email = dto.Email.ToLower().Trim();
             var users = await _userRepository.Find(u => u.Email == dto.Email);
             var user = users.FirstOrDefault();
 

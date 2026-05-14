@@ -32,7 +32,7 @@ namespace Service.Services
         public async Task<List<CategoryDto>> GetUserCategories(int userId)
         {
             var categories = await _categoryRepository
-                .Find(c => c.IsSystem || c.UserId == userId);
+                .Find(c =>c.UserId == userId);
 
             return _mapper.Map<List<CategoryDto>>(categories);
         }
@@ -78,8 +78,8 @@ namespace Service.Services
             if (category == null)
                 throw new Exception("Category not found");
 
-            if (category.IsSystem)
-                throw new Exception("Cannot update system category");
+            //if (category.IsSystem)
+            //    throw new Exception("Cannot update system category");
 
             if (category.UserId != userId)
                 throw new UnauthorizedAccessException();

@@ -59,6 +59,7 @@ namespace Repository.Repositories
 
             existingCategory.Name = entity.Name;
             existingCategory.IsFixed = entity.IsFixed;
+            existingCategory.BudgetLimit= entity.BudgetLimit;
 
             await ctx.Save();
             return existingCategory;

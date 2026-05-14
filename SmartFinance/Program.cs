@@ -54,6 +54,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // ================= JWT Authentication =================
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -63,11 +65,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = "SmartFinance",
-            ValidAudience = "SmartFinance",
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes("THIS_IS_MY_SUPER_SECRET_KEY_12345")
-            )
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(key)
         };
     });
 
