@@ -39,6 +39,14 @@ namespace Repository.Repositories
         {
             return await ctx.Expenses.Where(predicate).ToListAsync();
         }
+        public async Task<List<Expense>> FindWithIncludes(
+            System.Linq.Expressions.Expression<Func<Expense, bool>> predicate)
+        {
+            return await ctx.Expenses
+                .Include(e => e.Event)   
+                .Where(predicate)
+                .ToListAsync();
+        }
 
         public async Task<List<Expense>> GetAll()
         {

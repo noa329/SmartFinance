@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Common.Dto;
+using Microsoft.EntityFrameworkCore;
 using Repository.Entities;
 using Repository.Interfaces;
 using Repository.Repositories;
@@ -38,7 +39,9 @@ namespace Service.Services
 
         public async Task<List<ExpenseDto>> GetUserExpenses(int userId)
         {
-            var expenses = await _expenseRepository.Find(e => e.UserId == userId);
+            //var expenses = await _expenseRepository.Find(e => e.UserId == userId);
+            var expenses = await ((ExpenseRepository)_expenseRepository)
+        .FindWithIncludes(e => e.UserId == userId);
 
             return _mapper.Map<List<ExpenseDto>>(expenses);
         }
@@ -202,6 +205,23 @@ namespace Service.Services
                 throw new Exception("Expense not found");
 
             await _expenseRepository.Delete(id);
+        }
+        public async Task UpdateExpenseEvent(int expenseId, int? eventId, int userId)
+        {
+            // 1. שליפת ההוצאה מה-DB תוך וידאו שהיא שייכת למשתמש המחובר
+            var expense = await _expenseRepository.GetById(expenseId);
+
+            // 2. הגנה: אם ההוצאה לא נמצאה (או לא שייכת למשתמש), נזרוק שגיאה או פשוט נעצור
+            if (expense == null || expense.UserId != userId)
+            {
+                throw new KeyNotFoundException("Expense not found or unauthorized.");
+            }
+
+            // 3. עדכון ה-EventId (אם נשלח null, השדה ב-DB יתאפס)
+            expense.EventId = eventId;
+
+            // 4. שמירת השינויים בבסיס הנתונים
+            await _expenseRepository.Update(expenseId, expense);
         }
     }
 }

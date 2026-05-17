@@ -67,15 +67,17 @@ namespace Service.Services
             return dto;
         }
 
-        public async Task AddEvent(EventCreateDto dto, int userId)
+        public async Task<EventDto> AddEvent(EventCreateDto dto, int userId)
         {
             var entity = _mapper.Map<Event>(dto);
 
             entity.UserId = userId;
 
             await _eventRepo.Add(entity);
+            return _mapper.Map<EventDto>(entity);
+
         }
-        public async Task UpdateEvent(int id, EventUpdateDto dto, int userId)
+        public async Task<EventDto> UpdateEvent(int id, EventUpdateDto dto, int userId)
         {
             var entity = await _eventRepo.GetById(id);
 
@@ -85,6 +87,7 @@ namespace Service.Services
             _mapper.Map(dto, entity);
 
             await _eventRepo.Update(id, entity);
+            return _mapper.Map<EventDto>(entity);
         }
         public async Task DeleteEvent(int id, int userId)
         {

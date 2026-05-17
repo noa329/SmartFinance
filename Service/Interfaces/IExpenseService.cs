@@ -9,5 +9,6 @@ namespace Service.Interfaces
         Task AddExpense(createExpenseDto dto, int userId);
 
         Task DeleteExpense(int id, int userId);
+        Task UpdateExpenseEvent(int expenseId, int? eventId, int userId);
     }
 }

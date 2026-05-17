@@ -68,7 +68,7 @@ namespace DataContext.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Alerts");
+                    b.ToTable("Alerts", (string)null);
                 });
 
             modelBuilder.Entity("Repository.Entities.Budget", b =>
@@ -104,7 +104,7 @@ namespace DataContext.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Budgets");
+                    b.ToTable("Budgets", (string)null);
                 });
 
             modelBuilder.Entity("Repository.Entities.Category", b =>
@@ -136,7 +136,7 @@ namespace DataContext.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("Repository.Entities.Event", b =>
@@ -168,7 +168,7 @@ namespace DataContext.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Events");
+                    b.ToTable("Events", (string)null);
                 });
 
             modelBuilder.Entity("Repository.Entities.Expense", b =>
@@ -237,7 +237,7 @@ namespace DataContext.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Expenses");
+                    b.ToTable("Expenses", (string)null);
                 });
 
             modelBuilder.Entity("Repository.Entities.User", b =>
@@ -295,7 +295,7 @@ namespace DataContext.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Repository.Entities.Alert", b =>

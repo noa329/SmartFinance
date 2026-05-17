@@ -41,8 +41,8 @@ namespace SmartFinance.Controllers
         public async Task<IActionResult> Create(EventCreateDto dto)
         {
             int userId = GetUserId();
-            await _service.AddEvent(dto, userId);
-            return Ok();
+            var created=await _service.AddEvent(dto, userId);
+            return Ok(created);
         }
 
         // PUT: api/events/{id}
@@ -50,8 +50,8 @@ namespace SmartFinance.Controllers
         public async Task<IActionResult> Update(int id, EventUpdateDto dto)
         {
             int userId = GetUserId();
-            await _service.UpdateEvent(id, dto, userId);
-            return Ok();
+            var updated = await _service.UpdateEvent(id, dto, userId);
+            return Ok(updated);
         }
 
         // DELETE: api/events/{id}

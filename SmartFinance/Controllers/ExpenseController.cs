@@ -35,6 +35,15 @@ namespace SmartFinance.Controllers
             return Ok(new { message = "Expense added successfully" });
         }
 
+        // PUT: api/expenses/{id}/event
+        [HttpPut("{id}/event")]
+        public async Task<IActionResult> UpdateEvent(int id, [FromBody] UpdateExpenseEventDto dto)
+        {
+            // שולח לשירות את מזהה ההוצאה, ה-dto שמכיל את ה-eventId (שיכול להיות null), ואת ה-UserId
+            await _service.UpdateExpenseEvent(id, dto.EventId, UserId);
+            return Ok(new { message = "Expense event updated successfully" });
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

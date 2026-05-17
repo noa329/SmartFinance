@@ -12,8 +12,8 @@ namespace Service.Interfaces
         Task<List<EventDto>> GetUserEvents(int userId);
         Task<EventDto> GetEventStats(int eventId, int userId);
 
-        Task AddEvent(EventCreateDto dto, int userId);
-        Task UpdateEvent(int id, EventUpdateDto dto, int userId);
+        Task<EventDto> AddEvent(EventCreateDto dto, int userId);
+        Task<EventDto> UpdateEvent(int id, EventUpdateDto dto, int userId);
         Task DeleteEvent(int id, int userId);
     }
 }

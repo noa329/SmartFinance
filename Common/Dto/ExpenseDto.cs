@@ -14,6 +14,8 @@ namespace Common.Dto
         public DateTime Date { get; set; }
         public int CategoryId { get; set; }
         public int? EventId { get; set; }
+        public string? EventName { get; set; } 
+
 
         public bool IsRecurring { get; set; }              
         public DateTime? StartDate { get; set; }           
@@ -32,6 +34,8 @@ namespace Common.Dto
         public DateTime Date { get; set; }
         public int CategoryId { get; set; }
         public int? EventId { get; set; }
+        public string? EventName { get; set; } 
+
         public string MerchantName { get; set; } = string.Empty;
 
         public bool IsRecurring { get; set; }
@@ -52,6 +56,8 @@ namespace Common.Dto
         public DateTime Date { get; set; }
         public int CategoryId { get; set; }
         public int? EventId { get; set; }
+        public string? EventName { get; set; } 
+
 
         public bool IsRecurring { get; set; }
         public DateTime? StartDate { get; set; }
@@ -61,5 +67,9 @@ namespace Common.Dto
         public int InstallmentsCount { get; set; } = 1;
         public decimal InstallmentAmount { get; set; }
         public DateTime? FirstInstallmentDate { get; set; }
+    }
+    public class UpdateExpenseEventDto
+    {
+        public int? EventId { get; set; } 
     }
 }

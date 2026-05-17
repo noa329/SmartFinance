@@ -68,7 +68,9 @@ namespace Service.Mapping
                 .ForMember(dest => dest.IsRecurring, opt => opt.MapFrom(src => src.IsRecurring))
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
-                .ForMember(dest => dest.DayOfMonth, opt => opt.MapFrom(src => src.DayOfMonth));
+                .ForMember(dest => dest.DayOfMonth, opt => opt.MapFrom(src => src.DayOfMonth))
+                .ForMember(dest => dest.EventId, opt => opt.MapFrom(src => src.EventId))         
+                .ForMember(dest => dest.EventName, opt => opt.MapFrom(src => src.Event != null ? src.Event.Name : null)); 
 
             // CreateDto -> Entity
             CreateMap<createExpenseDto, Expense>()
