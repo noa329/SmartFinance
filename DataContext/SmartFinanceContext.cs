@@ -41,9 +41,12 @@ namespace DataContext
             modelBuilder.Entity<Category>().HasMany(c => c.Expenses).WithOne(e => e.Category).HasForeignKey(e => e.CategoryId);
             modelBuilder.Entity<Category>().HasMany(c => c.Budgets).WithOne(b => b.Category).HasForeignKey(b => b.CategoryId);
             modelBuilder.Entity<Category>().Property(c => c.BudgetLimit).HasColumnType("decimal(18,2)");
- 
-            modelBuilder.Entity<Event>().HasMany(ev => ev.Expenses).WithOne(e => e.Event).HasForeignKey(e => e.EventId);
 
+            modelBuilder.Entity<Event>()
+     .HasMany(ev => ev.Expenses)
+     .WithOne(e => e.Event)
+     .HasForeignKey(e => e.EventId)
+     .OnDelete(DeleteBehavior.ClientSetNull);
             modelBuilder.Entity<Alert>().HasOne(a => a.User).WithMany(u => u.Alerts).HasForeignKey(a => a.UserId);
 
             modelBuilder.Entity<Expense>().Property(e => e.TotalAmount).HasColumnType("decimal(18,2)"); 

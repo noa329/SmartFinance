@@ -91,14 +91,25 @@ namespace Service.Services
         }
         public async Task DeleteEvent(int id, int userId)
         {
+            // 1. שליפת האירוע ואימות בעלות
             var entity = await _eventRepo.GetById(id);
 
             if (entity == null || entity.UserId != userId)
                 throw new Exception("Not found");
 
-            if (entity.UserId != userId)
-                throw new Exception("Unauthorized");
+            // 2. שליפת כל ההוצאות שקשורות לאירוע הזה
+            var relatedExpenses = await _expenseRepo.Find(e => e.EventId == id);
 
+            // 3. עדכון ושמירה של כל הוצאה בנפרד כדי לנתק אותה בבסיס הנתונים
+            foreach (var expense in relatedExpenses)
+            {
+                expense.EventId = null;
+
+                // קריאה ישירה ל-Update של ה-Repository כדי שיבצע שמירה של הניתוק בפועל
+                await _expenseRepo.Update(expense.Id, expense);
+            }
+
+            // 4. עכשיו, כשהבסיס נתונים מעודכן ואין אף הוצאה שמצביעה על האירוע - מוחקים אותו בבטחה
             await _eventRepo.Delete(id);
         }
     }
