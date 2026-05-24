@@ -36,6 +36,9 @@ namespace DataContext.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsSent")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -194,6 +197,9 @@ namespace DataContext.Migrations
                     b.Property<DateTime>("FirstInstallmentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("GmailMessageId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("InstallmentAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -263,6 +269,9 @@ namespace DataContext.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("GmailToken")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsAlertEnabled")
                         .HasColumnType("bit");

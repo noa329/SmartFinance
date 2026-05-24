@@ -15,7 +15,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-
+using Google.Apis.Auth; 
 
 namespace Service.Services
 {
@@ -97,7 +97,7 @@ namespace Service.Services
             if (user == null)
                 throw new Exception("User not found");
 
-            var existing = await _userRepository.Find(u => u.Email.ToLower() == dto.Email.ToLower() &&u.Id != id);
+            var existing = await _userRepository.Find(u => u.Email.Equals(dto.Email, StringComparison.CurrentCultureIgnoreCase) && u.Id != id);
        
             if (existing.Any())
                 throw new InvalidOperationException("Email already exists");
@@ -146,6 +146,52 @@ namespace Service.Services
             );
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        public async Task<AuthResponseDto> GoogleLoginOrRegister(string googleToken)
+        {
+            var payload = await GoogleJsonWebSignature.ValidateAsync(
+                googleToken,
+                new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { _configuration["Authentication:Google:ClientId"] ??
+                throw new Exception("Google ClientId missing") }
+                });
+
+            var email = (payload.Email ?? throw new Exception("Email missing from Google token"))
+                .ToLower().Trim();
+
+            var users = await _userRepository.Find(u => u.Email == email);
+            var user = users.FirstOrDefault();
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    Email = email,
+                    FullName = payload.Name ?? email,
+                    PasswordHash = "GOOGLE_AUTH_USER",
+                    CreatedAt = DateTime.UtcNow,
+                    LastLoginAt = DateTime.UtcNow,
+                };
+
+                await _userRepository.Add(user);
+                await _initialLoginService.InitializeUserCategories(user.Id);
+            }
+            else
+            {
+                user.LastLoginAt = DateTime.UtcNow;
+                await _userRepository.Update(user.Id, user);
+            }
+
+            var appToken = GenerateJwtToken(user);
+
+            return new AuthResponseDto
+            {
+                User = _mapper.Map<UserDto>(user),
+                Token = appToken,
+                GoogleAccessToken = googleToken
+            };
+        }
         public async Task<AuthResponseDto> Register(UserCreateDto dto)
         {
             dto.Email = dto.Email.ToLower().Trim();
@@ -191,6 +237,13 @@ namespace Service.Services
                 User = _mapper.Map<UserDto>(user),
                 Token = token
             };
+        }
+        public async Task SaveGmailRefreshToken(int userId, string refreshToken)
+        {
+            var user = await _userRepository.GetById(userId);
+            if (user == null) throw new Exception("User not found");
+            user.GmailToken = refreshToken;
+            await _userRepository.Update(userId, user);
         }
     }
 }

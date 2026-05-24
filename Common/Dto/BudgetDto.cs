@@ -23,7 +23,7 @@ namespace Common.Dto
         public int Percentage { get; set; }
         public bool AlertEnabled { get; set; } = true;
         public int AlertThreshold { get; set; } = 80;
-        public int UserId { get; set; }
+        //public int UserId { get; set; }
     }
     public class BudgetUpdateDto
     {

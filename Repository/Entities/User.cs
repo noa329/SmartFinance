@@ -39,7 +39,7 @@ namespace Repository.Entities
         public decimal? YearlyIncome { get; set; }
 
         public bool IsAlertEnabled { get; set; } = true;
-
+        public string? GmailToken { get; set; }
         public double? AlertPercentage { get; set; }
         public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
         public ICollection<Event> Events { get; set; } = new List<Event>();

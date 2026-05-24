@@ -17,5 +17,8 @@ namespace Service.interfaces
         Task Delete(int id);
         Task<AuthResponseDto> Register(UserCreateDto dto);
         Task<AuthResponseDto?> Login(UserLoginDto dto);
+        Task<AuthResponseDto> GoogleLoginOrRegister(string googleToken);
+        Task SaveGmailRefreshToken(int userId, string refreshToken);
+
     }
 }

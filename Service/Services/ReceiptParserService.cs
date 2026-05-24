@@ -8,7 +8,7 @@ namespace Service.Services
 {
     public class ReceiptParserService : IReceiptParserService
     {
-        public async Task<ParsedReceipt> ParseReceiptText(string text)
+        public  Task<ParsedReceipt> ParseReceiptText(string text)
         {
             Console.WriteLine("\n[ReceiptParser] ========================================");
             Console.WriteLine("[ReceiptParser] Starting to parse receipt...");
@@ -61,8 +61,8 @@ namespace Service.Services
                 Console.WriteLine($"[ReceiptParser] Stack: {ex.StackTrace}");
                 receipt.Errors.Add($"Parsing error: {ex.Message}");
             }
-
-            return receipt;
+            return Task.FromResult(receipt);
+            //return receipt;
         }
 
         // ========================================
@@ -96,6 +96,10 @@ namespace Service.Services
             // ✅ תיקון: Regex ספציפי יותר - תופס רק מה שמיד אחרי "ב-"
             var patterns = new[]
             {
+             @"(?:חשבונית|קבלה|אישור תשלום)\s+([א-תA-Za-z0-9""'\-\.& ]{2,30}?)(?:\s+(?:תאריך|סכום|מספר)|$)",
+
+                // ← חדש: "מ-סופר פארם" / "מ סופר פארם"
+         @"מ[-\s]([א-תA-Za-z0-9""'\-\.& ]+?)(?:\s*(?:תאריך|סכום|בתאריך|$))",
         // דפוס 1: "עסקה ב-רמי לוי" - תופס עד רווח או סימן פיסוק
         @"(?:עסקה|חיוב|רכישה|ביצעת עסקה)\s+ב[-\s:]?([א-תA-Za-z0-9""'\-\.& ]+?)(?:\s+(?:תאריך|סכום|בתאריך|ב|ע""ס|על|של)|$)",
         

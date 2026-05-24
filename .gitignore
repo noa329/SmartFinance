@@ -3,6 +3,16 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# חסימת קבצי הגדרות שמכילים סודות ומפתחות
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+
+# חסימת תיקיות קוד זמניות של דוטנט שאין צורך להעלות (מונע בלגן בריפו)
+bin/
+obj/
+.vs/
+
 # User-specific files
 *.rsuser
 *.suo

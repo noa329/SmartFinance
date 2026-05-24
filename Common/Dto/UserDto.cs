@@ -14,6 +14,7 @@ namespace Common.Dto
         public string Email { get; set; }= null!;
         public DateTime CreatedAt { get; set; } 
         public DateTime LastLoginAt { get; set; }
+        public string? GmailToken { get; set; }
     }
 
     public class UserUpdateDto
@@ -41,6 +42,8 @@ namespace Common.Dto
     {
         public UserDto User { get; set; } = null!;
         public string Token { get; set; } = null!;
+        public string? GoogleAccessToken { get; set; }
+        public string? GmailToken { get; set; }
     }
 
     public class SetIncomeDto

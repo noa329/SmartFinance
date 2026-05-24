@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using Common.Dto;
-using Microsoft.EntityFrameworkCore;
 using Repository.Entities;
 using Repository.Interfaces;
 using Repository.Repositories;
 using Service.Interfaces;
+using System.Text;
 
 namespace Service.Services
 {
@@ -17,7 +17,6 @@ namespace Service.Services
         private readonly ICategoryService _categoryService;
         private readonly EmailService _emailService;
         private readonly IMapper _mapper;
-
 
         public ExpenseService(
             IRepository<Expense> expenseRepository,
@@ -39,189 +38,116 @@ namespace Service.Services
 
         public async Task<List<ExpenseDto>> GetUserExpenses(int userId)
         {
-            //var expenses = await _expenseRepository.Find(e => e.UserId == userId);
             var expenses = await ((ExpenseRepository)_expenseRepository)
-        .FindWithIncludes(e => e.UserId == userId);
-
+                .FindWithIncludes(e => e.UserId == userId);
             return _mapper.Map<List<ExpenseDto>>(expenses);
         }
 
-        //public async Task AddExpense(createExpenseDto dto, int userId)
-        //{
-
-        //    int categoryId;
-        //    string source;
-
-        //    if (dto.CategoryId != 0)
-        //    {
-        //        categoryId = dto.CategoryId;
-        //        source = "Manual";
-        //    }
-        //    else
-        //    {
-        //         categoryId = await _categoryService
-        //            .ResolveCategoryId(userId, dto.MerchantName);
-
-        //       source = "Mail";
-        //    }
-        //    var expense = new Expense
-        //    {
-        //        UserId = userId,
-        //        MerchantName = dto.MerchantName,
-        //        TotalAmount = dto.Amount,
-        //        TransactionDate = dto.Date,
-        //        CategoryId = categoryId,
-        //        EventId = dto.EventId,
-        //        InstallmentsCount = 1,
-        //        InstallmentAmount = dto.Amount,
-        //        FirstInstallmentDate = dto.Date,
-        //        Source = source,
-        //        OriginalText = dto.Description
-        //    };
-
-        //    await _expenseRepository.Add(expense);
-
-        //    await CheckBudgetAlert(expense);
-        //}
-        // Services/ExpenseService.cs
-        public async Task AddExpense(createExpenseDto dto, int userId)
+        public async Task AddExpense(createExpenseDto dto, int userId, string? messageId = null)
         {
-            Console.WriteLine($"\n[ExpenseService] Adding expense for User: {userId}");
+            Console.WriteLine($"[ExpenseService] Adding expense for User {userId}: {dto.MerchantName}");
 
-            int categoryId;
-            string source;
+            // קטגוריה: ידנית או אוטומטית דרך AI
+            int categoryId = dto.CategoryId != 0
+                ? dto.CategoryId
+                : await _categoryService.ResolveCategoryId(userId, dto.MerchantName);
 
-            if (dto.CategoryId != 0)
-            {
-                categoryId = dto.CategoryId;
-                source = "Manual";
-            }
-            else
-            {
-                categoryId = await _categoryService.ResolveCategoryId(userId, dto.MerchantName);
-                source = "Mail";
-            }
+            // תשלומים: חישוב תאריכים אוטומטי
             if (dto.InstallmentsCount > 1)
             {
-                dto.StartDate = dto.Date;
-                dto.EndDate = dto.Date.AddMonths(dto.InstallmentsCount - 1);
-
-                //dto.IsRecurring = true;
-                dto.DayOfMonth = dto.Date.Day;
+                dto.StartDate ??= dto.Date;
+                dto.EndDate ??= dto.Date.AddMonths(dto.InstallmentsCount - 1);
+                dto.DayOfMonth ??= dto.Date.Day;
             }
 
-            // ✅ תיקון: טיפול נכון בתשלומים
             var expense = new Expense
             {
                 UserId = userId,
                 MerchantName = dto.MerchantName,
                 TotalAmount = dto.Amount,
-                TransactionDate = dto.Date,
+                TransactionDate = dto.Date == default ? DateTime.UtcNow : dto.Date,
                 CategoryId = categoryId,
                 EventId = dto.EventId,
+                GmailMessageId = messageId,
 
-                // ✅ תשלומים
                 InstallmentsCount = dto.InstallmentsCount > 0 ? dto.InstallmentsCount : 1,
                 InstallmentAmount = dto.InstallmentAmount > 0 ? dto.InstallmentAmount : dto.Amount,
                 FirstInstallmentDate = dto.FirstInstallmentDate ?? dto.Date,
 
-
-                // ✅ הוצאה קבועה
                 IsRecurring = dto.IsRecurring,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 DayOfMonth = dto.DayOfMonth,
 
-                // Metadata
-                Source = source,
-                OriginalText = dto.Description ?? "",
-                //StartDate = DateTime.UtcNow
+                Source = messageId == null ? "Manual" : "Mail",
+                OriginalText = dto.Description ?? string.Empty
             };
 
-            Console.WriteLine($"[ExpenseService] Expense details:");
-            Console.WriteLine($"  Merchant: {expense.MerchantName}");
-            Console.WriteLine($"  Amount: {expense.TotalAmount:N2}");
-            Console.WriteLine($"  Category: {categoryId}");
-            Console.WriteLine($"  Installments: {expense.InstallmentsCount}x{expense.InstallmentAmount:N2}");
-
             await _expenseRepository.Add(expense);
-
-            Console.WriteLine($"[ExpenseService] ✅ Expense added successfully!");
+            Console.WriteLine($"[ExpenseService] ✅ Saved: {expense.MerchantName} {expense.TotalAmount:N2}₪");
 
             await CheckBudgetAlert(expense);
         }
+
+        public async Task DeleteExpense(int id, int userId)
+        {
+            var expense = await _expenseRepository.GetById(id);
+            if (expense == null || expense.UserId != userId)
+                throw new KeyNotFoundException("Expense not found or unauthorized.");
+
+            await _expenseRepository.Delete(id);
+        }
+
+        public async Task UpdateExpenseEvent(int expenseId, int? eventId, int userId)
+        {
+            var expense = await _expenseRepository.GetById(expenseId);
+            if (expense == null || expense.UserId != userId)
+                throw new KeyNotFoundException("Expense not found or unauthorized.");
+
+            expense.EventId = eventId;
+            await _expenseRepository.Update(expenseId, expense);
+        }
+
+        // ─────────────────────────────────────────
+        // בדיקת תקציב ויצירת התראה אם חורגים
+        // ─────────────────────────────────────────
         private async Task CheckBudgetAlert(Expense expense)
         {
             var category = await _categoryRepository.GetById(expense.CategoryId);
-            if (category == null || category.BudgetLimit <= 0)
-                return;
+            if (category == null || category.BudgetLimit <= 0) return;
 
             var user = await _userRepository.GetById(expense.UserId);
-            if (user == null || !user.IsAlertEnabled)
-                return;
+            if (user == null || !user.IsAlertEnabled) return;
 
-            var currentMonth = DateTime.Now.Month;
-            var currentYear = DateTime.Now.Year;
-            var expenses = await _expenseRepository.Find(e =>
+            // סכום ההוצאות בחודש הנוכחי לאותה קטגוריה
+            var now = DateTime.Now;
+            var monthExpenses = await _expenseRepository.Find(e =>
                 e.UserId == expense.UserId &&
                 e.CategoryId == expense.CategoryId &&
-                e.TransactionDate.Month == currentMonth &&
-                e.TransactionDate.Year == currentYear);
+                e.TransactionDate.Month == now.Month &&
+                e.TransactionDate.Year == now.Year);
 
-            decimal spent = expenses.Sum(e => e.TotalAmount);
-
+            decimal spent = monthExpenses.Sum(e => e.TotalAmount);
             decimal limit = category.BudgetLimit;
+            double threshold = user.AlertPercentage ?? 80;
+            double pct = (double)(spent / limit) * 100;
 
-            double percentageLimit = user.AlertPercentage ?? 80;
+            if (pct < threshold) return;
 
-            double currentPercentage = (double)(spent / limit) * 100;
-
-            if (currentPercentage < percentageLimit)
-                return;
-
+            // שמירת ההתראה ב-DB (תישלח ב-Sync היומי)
             var alert = new Alert
             {
                 UserId = user.Id,
                 Type = "Budget",
                 Title = "Budget Warning",
-                Message = $"You used {currentPercentage:F0}% of {category.Name}",
+                Message = $"ניצלת {pct:F0}% מתקציב {category.Name} ({spent:N2}/{limit:N2} ₪)",
                 RelatedEntityType = "Category",
-                RelatedEntityId = category.Id
+                RelatedEntityId = category.Id,
+                IsSent = false
             };
 
             await _alertRepository.Add(alert);
-
-            //await _emailService.SendBudgetAlert(
-            //    user.Email,
-            //    category.Name,
-            //    (double)spent,
-            //    (double)limit);
-        }
-        public async Task DeleteExpense(int id, int userId)
-        {
-            var expense = await _expenseRepository.GetById(id);
-
-            if (expense == null || expense.UserId != userId)
-                throw new Exception("Expense not found");
-
-            await _expenseRepository.Delete(id);
-        }
-        public async Task UpdateExpenseEvent(int expenseId, int? eventId, int userId)
-        {
-            // 1. שליפת ההוצאה מה-DB תוך וידאו שהיא שייכת למשתמש המחובר
-            var expense = await _expenseRepository.GetById(expenseId);
-
-            // 2. הגנה: אם ההוצאה לא נמצאה (או לא שייכת למשתמש), נזרוק שגיאה או פשוט נעצור
-            if (expense == null || expense.UserId != userId)
-            {
-                throw new KeyNotFoundException("Expense not found or unauthorized.");
-            }
-
-            // 3. עדכון ה-EventId (אם נשלח null, השדה ב-DB יתאפס)
-            expense.EventId = eventId;
-
-            // 4. שמירת השינויים בבסיס הנתונים
-            await _expenseRepository.Update(expenseId, expense);
+            Console.WriteLine($"[ExpenseService] ⚠️ Budget alert created: {pct:F0}% of {category.Name}");
         }
     }
 }

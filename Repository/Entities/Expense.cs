@@ -27,6 +27,7 @@ namespace Repository.Entities
 
         public int? EventId { get; set; }
         public Event Event { get; set; } = null!;
+        public string? GmailMessageId { get; set; } 
 
         public int InstallmentsCount { get; set; } = 1;
         public decimal InstallmentAmount { get; set; }

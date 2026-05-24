@@ -26,6 +26,7 @@ namespace Repository.Entities
         [Required]
         [MaxLength(500)]
         public string Message { get; set; } = null!;
+        public bool IsSent { get; set; } = false;
 
         public bool IsRead { get; set; } = false;
         public DateTime? ReadAt { get; set; }

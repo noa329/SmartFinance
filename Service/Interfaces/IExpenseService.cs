@@ -6,8 +6,7 @@ namespace Service.Interfaces
     {
         Task<List<ExpenseDto>> GetUserExpenses(int userId);
 
-        Task AddExpense(createExpenseDto dto, int userId);
-
+        Task AddExpense(createExpenseDto dto, int userId, string? messageId = null);
         Task DeleteExpense(int id, int userId);
         Task UpdateExpenseEvent(int expenseId, int? eventId, int userId);
     }
