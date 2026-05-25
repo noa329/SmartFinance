@@ -81,23 +81,35 @@ namespace Service.Services
 
             Console.WriteLine($"[Gmail] Found {listResponse.Messages.Count} messages matching filter");
 
+            var googleMessageIds = listResponse.Messages.Select(m => m.Id).ToList();
+
+            var existingExpenses = await _expenseRepository.Find(e => e.GmailMessageId != null && googleMessageIds.Contains(e.GmailMessageId));
+            var existingMessageIds = new HashSet<string>(existingExpenses.Select(e => e.GmailMessageId).Where(id => id != null)!);
             int processedCount = 0;
 
             foreach (var messageSummary in listResponse.Messages)
             {
                 try
                 {
-                    var existing = await _expenseRepository.Find(e => e.GmailMessageId == messageSummary.Id);
-                    if (existing != null && existing.Any())
+                    if (existingMessageIds.Contains(messageSummary.Id))
                     {
                         Console.WriteLine($"[Gmail] Skipping duplicate: {messageSummary.Id}");
                         continue;
                     }
 
                     var message = await gmailService.Users.Messages.Get("me", messageSummary.Id).ExecuteAsync();
+
+                    // ── חדש: שמור PDF bytes אם יש ──
+                    byte[]? pdfBytes = null;
+                    var pdfPartForBytes = FindPdfPart(message.Payload?.Parts ?? new List<Google.Apis.Gmail.v1.Data.MessagePart>());
+                    if (pdfPartForBytes?.Body?.AttachmentId != null)
+                        pdfBytes = await GetAttachmentBytesRawAsync(message.Id, pdfPartForBytes.Body.AttachmentId, gmailService);
+                    // ─────────────────────────────────
+
                     string emailBody = await ExtractEmailBodyAsync(message, gmailService);
 
-                    if (!IsActualInvoice(emailBody, message.Snippet))
+                    bool hasPdf = pdfBytes != null;
+                    if (!IsActualInvoice(emailBody, message.Snippet) && !hasPdf)
                     {
                         Console.WriteLine("[Gmail] Not an invoice, skipping");
                         continue;
@@ -108,18 +120,47 @@ namespace Service.Services
                     createExpenseDto? parsedDto = null;
 
                     // שלב 1: נסה Regex קודם — חינם ומהיר
+                    //var receiptResult = await _receiptParser.ParseReceiptText(emailBody);
+                    //if (receiptResult.IsValid)
+                    //{
+                    //    Console.WriteLine($"[Gmail] ✅ Parsed by Regex: {receiptResult.MerchantName} {receiptResult.TotalAmount:N2}₪");
+                    //    parsedDto = MapReceiptToDto(receiptResult);
+                    //}
+                    //else
+                    //{
+                    //    // שלב 2: Regex נכשל → קרא ל-Gemini
+                    //    Console.WriteLine($"[Gmail] Regex failed ({string.Join(", ", receiptResult.Errors)}), trying Gemini...");
+                    //    await Task.Delay(4000);
+                    //    parsedDto = await _aiParser.ParseInvoiceAsync(emailBody);
+                    //}
+                    //if ((parsedDto == null || parsedDto.Amount == 0) && pdfBytes != null)
+                    //{
+                    //    Console.WriteLine("[Gmail] 📤 Trying Gemini with raw PDF...");
+                    //    parsedDto = await _aiParser.ParseInvoicePdfAsync(pdfBytes);
+                    //}
                     var receiptResult = await _receiptParser.ParseReceiptText(emailBody);
                     if (receiptResult.IsValid)
                     {
                         Console.WriteLine($"[Gmail] ✅ Parsed by Regex: {receiptResult.MerchantName} {receiptResult.TotalAmount:N2}₪");
                         parsedDto = MapReceiptToDto(receiptResult);
                     }
+                    else if (pdfBytes != null && string.IsNullOrWhiteSpace(emailBody.Trim().Replace("תודה שקניתם אצלינו", "").Trim()))
+                    {
+                        // הטקסט ריק/חסר משמעות ויש PDF — קפוץ ישירות ל-PDF
+                        Console.WriteLine("[Gmail] 📤 Empty body + PDF exists, going straight to Gemini PDF...");
+                        parsedDto = await _aiParser.ParseInvoicePdfAsync(pdfBytes);
+                    }
                     else
                     {
-                        // שלב 2: Regex נכשל → קרא ל-Gemini
-                        Console.WriteLine($"[Gmail] Regex failed ({string.Join(", ", receiptResult.Errors)}), trying Gemini...");
+                        Console.WriteLine($"[Gmail] Regex failed, trying Gemini text...");
                         await Task.Delay(4000);
                         parsedDto = await _aiParser.ParseInvoiceAsync(emailBody);
+
+                        if ((parsedDto == null || parsedDto.Amount == 0) && pdfBytes != null)
+                        {
+                            Console.WriteLine("[Gmail] 📤 Trying Gemini with raw PDF...");
+                            parsedDto = await _aiParser.ParseInvoicePdfAsync(pdfBytes);
+                        }
                     }
 
                     if (parsedDto == null || parsedDto.Amount == 0)
@@ -140,6 +181,28 @@ namespace Service.Services
 
             Console.WriteLine($"[Gmail] Done. Processed {processedCount} new invoices.");
             return processedCount;
+        }
+
+        private async Task<byte[]?> GetAttachmentBytesRawAsync(string messageId, string attachmentId, GmailService gmailService)
+        {
+            try
+            {
+                var attachment = await gmailService.Users.Messages.Attachments.Get("me", messageId, attachmentId).ExecuteAsync();
+                if (attachment?.Data == null) return null;
+
+                var base64 = attachment.Data.Replace("-", "+").Replace("_", "/");
+                switch (base64.Length % 4)
+                {
+                    case 2: base64 += "=="; break;
+                    case 3: base64 += "="; break;
+                }
+                return Convert.FromBase64String(base64);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Gmail] ❌ Failed to get attachment bytes: {ex.Message}");
+                return null;
+            }
         }
 
         // ──────────────────────────────────────────────
@@ -307,14 +370,19 @@ namespace Service.Services
             {
                 using var document = PdfDocument.Open(pdfBytes);
                 var sb = new StringBuilder();
-
                 foreach (var page in document.GetPages())
-                {
-                    var words = page.GetWords();
-                    sb.AppendLine(string.Join(" ", words));
-                }
+                    sb.AppendLine(string.Join(" ", page.GetWords()));
 
                 var result = sb.ToString().Trim();
+
+                // בדוק אם הטקסט "זבל" — יותר מ-40% תווים לא-ASCII
+                int nonAscii = result.Count(c => c > 127);
+                if (result.Length > 0 && (double)nonAscii / result.Length > 0.4)
+                {
+                    Console.WriteLine("[Gmail] ⚠️ PDF text looks corrupted (garbled encoding), skipping PDF");
+                    return "";
+                }
+
                 Console.WriteLine($"[Gmail] PDF extracted {result.Length} chars");
                 return result;
             }
@@ -347,17 +415,24 @@ namespace Service.Services
             var content = (body + " " + (snippet ?? "")).ToLower();
 
             bool hasActualAmount = Regex.IsMatch(content, @"[\d,]+\.?\d*\s*₪") ||
-                                   Regex.IsMatch(content, @"₪\s*[\d,]+") ||
-                                   Regex.IsMatch(content, @"total[:\s]+\$?[\d,]+\.?\d*");
+                       Regex.IsMatch(content, @"₪\s*[\d,]+") ||
+                       Regex.IsMatch(content, @"total[:\s]+\$?[\d,]+\.?\d*") ||
+                       Regex.IsMatch(content, @"\b\d+\.\d{2}\b") ||      
+                       Regex.IsMatch(content, @"amount[:\s]+[\d,]+") ||  
+                       content.Contains("לתשלום") ||
+                       content.Contains("סה\"כ") ||                       
+                       content.Contains("payment") ||                    
+                       content.Contains("charged") ||
+                       content.Contains("order total");
+                      
 
             string[] spamKeywords = {
-                "newsletter", "unsubscribe", "הסר מרשימה", "marketing",
-                "ניוזלטר", "הצטרפות לרשימה", "הסרה מרשימת התפוצה",
-                "billing changes", "starting july", "we're writing to inform"
-            };
+        "newsletter", "unsubscribe", "הסר מרשימה",
+        "ניוזלטר", "הצטרפות לרשימה", "הסרה מרשימת התפוצה"
+    };
 
             string[] socialKeywords = {
-                "שידוכים", "השדכן", "הטיפ השבועי",
+                 "הטיפ השבועי",
                 "donate", "תרומה", "unsubscribe"
             };
 

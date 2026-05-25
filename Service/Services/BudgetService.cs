@@ -151,8 +151,32 @@ namespace Service.Services
 
         private async Task<decimal> CalculateDisposableIncome(int userId, decimal income)
         {
-            var fixedCategories = await _categoryRepo.Find(c => (c.UserId == userId || c.IsSystem) && c.IsFixed);
-            return income - fixedCategories.Sum(c => c.BudgetLimit);
+            var now = DateTime.UtcNow;
+            // שליפת כל ההוצאות של המשתמש שהן קבועות/רצות
+            var expenses = await _expenseRepo.Find(e => e.UserId == userId);
+            decimal totalFixed = 0;
+
+            foreach (var e in expenses)
+            {
+                if (e.InstallmentsCount > 1)
+                {
+                    var monthsPassed = ((now.Year - e.FirstInstallmentDate.Year) * 12) + now.Month - e.FirstInstallmentDate.Month;
+                    if (monthsPassed >= 0 && monthsPassed < e.InstallmentsCount)
+                    {
+                        totalFixed += e.InstallmentAmount;
+                    }
+                }
+                else if (e.IsRecurring && e.StartDate.HasValue)
+                {
+                    bool withinPeriod = e.StartDate.Value <= now && (e.EndDate == null || e.EndDate >= now);
+                    if (withinPeriod)
+                    {
+                        totalFixed += e.TotalAmount;
+                    }
+                }
+            }
+
+            return income - totalFixed;
         }
 
         private async Task ValidateTotalPercentage(int userId, int newPercentage, int? excludeId = null)

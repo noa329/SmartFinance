@@ -41,6 +41,9 @@ namespace Repository.Entities
         public bool IsAlertEnabled { get; set; } = true;
         public string? GmailToken { get; set; }
         public double? AlertPercentage { get; set; }
+
+        [MaxLength(500)]
+        public string? PictureUrl { get; set; }
         public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
         public ICollection<Event> Events { get; set; } = new List<Event>();
         public ICollection<Budget> Budgets { get; set; } = new List<Budget>();

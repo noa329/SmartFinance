@@ -15,6 +15,7 @@ namespace Common.Dto
         public DateTime CreatedAt { get; set; } 
         public DateTime LastLoginAt { get; set; }
         public string? GmailToken { get; set; }
+        public string? PictureUrl { get; set; }
     }
 
     public class UserUpdateDto

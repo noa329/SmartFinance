@@ -25,7 +25,8 @@ namespace Service.Mapping
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.PhoneNumber))
                 .ForMember(dest => dest.LastLoginAt, opt => opt.MapFrom(src => src.LastLoginAt ?? DateTime.MinValue))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
-                .ForMember(dest => dest.GmailToken, opt => opt.MapFrom(src => src.GmailToken));
+                .ForMember(dest => dest.GmailToken, opt => opt.MapFrom(src => src.GmailToken))
+                .ForMember(dest => dest.PictureUrl, opt => opt.MapFrom(src => src.PictureUrl)); 
 
             // CreateDto -> Entity
             CreateMap<UserCreateDto, User>()

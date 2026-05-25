@@ -15,8 +15,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using Google.Apis.Auth; 
-
+using Google.Apis.Auth;
+using Service.Exceptions;
 namespace Service.Services
 {
     public class UserService : IUserService
@@ -172,6 +172,7 @@ namespace Service.Services
                     PasswordHash = "GOOGLE_AUTH_USER",
                     CreatedAt = DateTime.UtcNow,
                     LastLoginAt = DateTime.UtcNow,
+                    PictureUrl = payload.Picture,
                 };
 
                 await _userRepository.Add(user);
@@ -179,6 +180,11 @@ namespace Service.Services
             }
             else
             {
+                if (!string.IsNullOrEmpty(payload.Picture))
+                {
+                    user.PictureUrl = payload.Picture;
+                }
+
                 user.LastLoginAt = DateTime.UtcNow;
                 await _userRepository.Update(user.Id, user);
             }
@@ -197,7 +203,9 @@ namespace Service.Services
             dto.Email = dto.Email.ToLower().Trim();
             var existing = await _userRepository.Find(u => u.Email == dto.Email);
             if (existing.Any())
-                throw new Exception("Email already exists");
+            {
+                throw new BadRequestException("כתובת האימייל הזו כבר רשומה במערכת.");
+            }
 
             var user = _mapper.Map<User>(dto);
             user.PasswordHash = HashPassword(dto.Password);

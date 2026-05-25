@@ -1,7 +1,9 @@
-﻿using Common.Dto;
+﻿// ============================================================
+//  SmartFinance/Controllers/InitialLoginController.cs
+// ============================================================
+using Common.Dto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Repository.Entities;
 using Service.Interfaces;
 using System.Security.Claims;
 
@@ -54,6 +56,17 @@ namespace SmartFinance.Controllers
 
             var result = await _service.CalculateBudgetMonthly(UserId, targetMonth);
             return Ok(result);
+        }
+
+        // ─── END POINT חדש שנוסף כעת ───
+        [HttpPost("fixed-expenses")]
+        public async Task<IActionResult> SetFixedExpenses([FromBody] List<FixedExpenseDto> expenses)
+        {
+            if (expenses == null || expenses.Count == 0)
+                return Ok(new { saved = 0 });
+
+            await _service.SaveFixedExpenses(UserId, expenses);
+            return Ok(new { saved = expenses.Count });
         }
     }
 }

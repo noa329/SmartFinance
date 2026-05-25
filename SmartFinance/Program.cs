@@ -11,9 +11,10 @@ using Service.interfaces;
 using Service.Interfaces;
 using Service.Mapping;
 using Service.Services;
+using SmartFinance.Middlewares;
+using System.Net.Http;
 using System.Reflection;
 using System.Text;
-using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -182,6 +183,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseMiddleware<SmartFinance.Middlewares.ExceptionHandlingMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowReactApp");
 app.UseHttpsRedirection();

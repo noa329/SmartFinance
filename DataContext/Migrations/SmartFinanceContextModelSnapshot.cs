@@ -292,6 +292,10 @@ namespace DataContext.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("PictureUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("Role")
                         .HasColumnType("int");
 

@@ -1,4 +1,7 @@
-﻿using AutoMapper;
+﻿// ============================================================
+//  Service/Services/InitialLoginService.cs
+// ============================================================
+using AutoMapper;
 using Common.Dto;
 using Repository.Entities;
 using Repository.Interfaces;
@@ -12,8 +15,21 @@ namespace Service.Services
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<Budget> _budgetRepository;
-
         private readonly IMapper _mapper;
+
+        // מיפוי סטטי לצורך זיהוי אוטומטי של קטגוריה לפי שם ההוצאה
+        private static readonly Dictionary<string, string> _expenseCategoryMap = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "משכנתא",         "דיור"      },
+            { "שכר דירה",       "דיור"      },
+            { "ביטוח רכב",      "תחבורה"    },
+            { "ביטוח בריאות",   "בריאות"    },
+            { "ביטוח חיים",     "ביטוח"     },
+            { "אינטרנט",        "תקשורת"    },
+            { "טלפון",          "תקשורת"    },
+            { "ספורט",          "בריאות"    },
+            { "נטפליקס",        "בידור"     },
+        };
 
         public InitialLoginService(
             IRepository<User> userRepository,
@@ -32,38 +48,21 @@ namespace Service.Services
         private List<Category> GetDefaultCategories()
         {
             return new List<Category>
-    {
-
-        new Category { Name = "אחר", IsFixed = true ,IsSystem=true},
-        new Category { Name = "קניות", IsFixed = true ,IsSystem=true},
-        new Category { Name = "שכר דירה", IsFixed = true ,IsSystem=true},
-        new Category { Name = "חשבונות", IsFixed = true ,IsSystem=true},
-        new Category { Name = "אוכל", IsFixed = false ,IsSystem=true},
-        new Category { Name = "בריאות", IsFixed = false, IsSystem = true },
-        new Category { Name = "בילויים", IsFixed = false ,IsSystem=true},
-        new Category { Name = "תחבורה", IsFixed = false ,IsSystem=true}
-    };
+            {
+                new Category { Name = "אחר", IsFixed = true ,IsSystem=true},
+                new Category { Name = "קניות", IsFixed = true ,IsSystem=true},
+                new Category { Name = "שכר דירה", IsFixed = true ,IsSystem=true},
+                new Category { Name = "חשבונות", IsFixed = true ,IsSystem=true},
+                new Category { Name = "אוכל", IsFixed = false ,IsSystem=true},
+                new Category { Name = "בריאות", IsFixed = false, IsSystem = true },
+                new Category { Name = "בילויים", IsFixed = false ,IsSystem=true},
+                new Category { Name = "תחבורה", IsFixed = false ,IsSystem=true}
+            };
         }
 
-        // ============================
-        // Income Setup
-        // ============================
-
-        //public async Task SetInitialIncome(int userId, decimal monthlyIncome)
-        //{
-        //    var user = await _userRepository.GetById(userId);
-
-        //    if (user == null)
-        //        throw new Exception("User not found");
-
-        //    user.MonthlyIncome = monthlyIncome;
-
-        //    await _userRepository.Update(userId, user);
-        //}
         public async Task SetInitialIncome(int userId, decimal amount, bool isYearly)
         {
             var user = await _userRepository.GetById(userId);
-
             if (user == null)
                 throw new Exception("User not found");
 
@@ -78,104 +77,87 @@ namespace Service.Services
                 user.YearlyIncome = amount * 12;
             }
 
-
             await _userRepository.Update(userId, user);
         }
 
-        // ============================
-        // Categories Initialization
-        // ============================
-
-        //public async Task InitializeUserCategories(int userId)
-        //{
-        //    var defaultCategories = GetDefaultCategories();
-        //    var existingCategories = await _categoryRepository.GetAll(); 
-
-        //    foreach (var category in defaultCategories)
-        //    {
-        //        if (existingCategories.Any(c => c.UserId == userId && c.Name == category.Name))
-        //            continue;
-
-        //        var userCategory = new Category
-        //        {
-        //            Name = category.Name,
-        //            IsFixed = category.IsFixed,
-        //            IsSystem = true,
-        //            UserId = userId
-        //        };
-
-        //        await _categoryRepository.Add(userCategory);
-        //    }
-        //}
         public async Task InitializeUserCategories(int userId)
         {
             Console.WriteLine($"[InitCategories] Initializing categories for User: {userId}");
-
             var defaultCategories = GetDefaultCategories();
-
-            // ✅ תיקון: בדיקה רק לקטגוריות של המשתמש הזה
             var existingCategories = await _categoryRepository.Find(c => c.UserId == userId);
-
-            Console.WriteLine($"[InitCategories] User already has {existingCategories.Count()} categories");
 
             foreach (var category in defaultCategories)
             {
-                // בדיקה אם כבר קיים
                 if (existingCategories.Any(c => c.Name == category.Name))
-                {
-                    Console.WriteLine($"[InitCategories] ⏭️ Skipping '{category.Name}' (already exists)");
                     continue;
-                }
 
                 var userCategory = new Category
                 {
                     Name = category.Name,
                     IsFixed = category.IsFixed,
-                    IsSystem = true,  // ✅ זו קטגוריית ברירת מחדל
-                    UserId = userId   // ✅ חובה! שייכת למשתמש הספציפי
+                    IsSystem = true,
+                    UserId = userId
                 };
 
                 await _categoryRepository.Add(userCategory);
-                Console.WriteLine($"[InitCategories] ✅ Created category '{category.Name}' for User {userId}");
             }
         }
 
-        // ============================
-        // Fixed Expenses
-        // ============================
-
-        public async Task AddFixedExpenses(int userId, List<createExpenseDto> expenses)
+        // ─── מתודה חדשה ומאוחדת לשמירת הוצאות קבועות מה-Setup ───
+        public async Task SaveFixedExpenses(int userId, List<FixedExpenseDto> expenses)
         {
-            foreach (var dto in expenses)
+            // 1. מחיקת הוצאות setup קודמות כדי לאפשר עריכה וחזרה על השלב במידת הצורך
+            var existingSetupExpenses = await _expenseRepository.Find(e => e.UserId == userId && e.Source == "setup" && e.IsRecurring);
+            foreach (var oldExpense in existingSetupExpenses)
             {
-                var expense = _mapper.Map<Expense>(dto);
-
-                expense.UserId = userId;
-                expense.Source = "InitialSetup";
-
-                await _expenseRepository.Add(expense);
+                await _expenseRepository.Delete(oldExpense.Id);
             }
-        }
 
-        // ============================
-        // Category Budgets
-        // ============================
-
-        public async Task SetCategoryBudgets(int userId, List<BudgetCreateDto> budgets)
-        {
-            foreach (var budgetDto in budgets)
+            // 2. ריצה על ההוצאות החדשות ושמירתן ב-DB
+            foreach (var e in expenses.Where(exp => exp.Amount > 0))
             {
-                var budget = new Budget
+                int categoryId = e.CategoryId ?? await GetDefaultCategoryId(userId, e.Name);
+
+                var expenseEntity = new Expense
                 {
                     UserId = userId,
-                    CategoryId = budgetDto.CategoryId,
-                    Percentage = budgetDto.Percentage,
-                    AlertEnabled = true,
-                    AlertThreshold = 80
+                    MerchantName = e.Name,
+                    TotalAmount = e.Amount,
+                    InstallmentAmount = e.Amount,
+                    InstallmentsCount = 1,
+                    TransactionDate = DateTime.Today,
+                    FirstInstallmentDate = DateTime.Today,
+                    IsRecurring = true,
+                    StartDate = DateTime.Today,
+                    EndDate = null, // פתוח - רץ קבוע
+                    DayOfMonth = DateTime.Today.Day,
+                    Source = "setup",
+                    OriginalText = $"הוצאה קבועה: {e.Name}",
+                    CategoryId = categoryId
                 };
 
-                await _budgetRepository.Add(budget);
+                await _expenseRepository.Add(expenseEntity);
             }
+        }
+
+        // הלוגיקה הפנימית למציאת מזהה קטגוריה לפי שם ההוצאה באמצעות ה-Repository הגנרי
+        private async Task<int> GetDefaultCategoryId(int userId, string expenseName)
+        {
+            if (_expenseCategoryMap.TryGetValue(expenseName, out var categoryName))
+            {
+                var categories = await _categoryRepository.Find(c =>
+                    (c.UserId == userId || c.IsSystem) && c.Name == categoryName);
+
+                var cat = categories.FirstOrDefault();
+                if (cat != null) return cat.Id;
+            }
+
+            // ברירת מחדל במידה ולא נמצאה התאמה במילון - קטגוריית "אחר"
+            var defaultCategories = await _categoryRepository.Find(c =>
+                (c.UserId == userId || c.IsSystem) && c.Name == "אחר");
+
+            var defaultCat = defaultCategories.FirstOrDefault();
+            return defaultCat?.Id ?? 1; // החזרת מזהה 1 כהגנה אחרונה
         }
 
         public async Task<List<BudgetDto>> CalculateBudget(int userId)
@@ -185,18 +167,15 @@ namespace Service.Services
                 throw new Exception("User not found");
 
             var now = DateTime.UtcNow;
-
             var expenses = await _expenseRepository.Find(e => e.UserId == userId);
-
             decimal totalMonthlyFixed = 0;
 
+            // 1. חישוב סך ההוצאות הקבועות שכבר נשמרו בשלב 2
             foreach (var e in expenses)
             {
                 if (e.InstallmentsCount > 1)
                 {
-                    var monthsPassed = ((now.Year - e.FirstInstallmentDate.Year) * 12) +
-                                        now.Month - e.FirstInstallmentDate.Month;
-
+                    var monthsPassed = ((now.Year - e.FirstInstallmentDate.Year) * 12) + now.Month - e.FirstInstallmentDate.Month;
                     if (monthsPassed >= 0 && monthsPassed < e.InstallmentsCount)
                     {
                         totalMonthlyFixed += e.InstallmentAmount;
@@ -204,9 +183,7 @@ namespace Service.Services
                 }
                 else if (e.IsRecurring && e.StartDate.HasValue)
                 {
-                    bool withinPeriod = e.StartDate.Value <= now &&
-                                         (e.EndDate == null || e.EndDate >= now);
-
+                    bool withinPeriod = e.StartDate.Value <= now && (e.EndDate == null || e.EndDate >= now);
                     if (withinPeriod)
                     {
                         totalMonthlyFixed += e.TotalAmount;
@@ -214,24 +191,71 @@ namespace Service.Services
                 }
             }
 
+            // חישוב ההכנסה הפנויה
             var remaining = user.MonthlyIncome - totalMonthlyFixed;
-
             if (remaining < 0)
                 throw new Exception("The fixed costs are higher than the income");
 
+            // 2. 🔥 התיקון הקריטי: בדיקה ויצירת תקציבים ראשוניים אם לא קיימים
             var budgets = await _budgetRepository.Find(b => b.UserId == userId);
 
-            foreach (var budget in budgets)
+            if (!budgets.Any())
             {
-                var amount = (remaining * budget.Percentage) / 100;
-                budget.CalculatedAmount = amount;
+                // מושכים את הקטגוריות של המשתמש שהן משתנות (לא קבועות/IsFixed), כי עליהן בונים תקציב גמיש
+                var userCategories = await _categoryRepository.Find(c => c.UserId == userId && !c.IsFixed);
 
-                await _budgetRepository.Update(budget.Id, budget);
+                if (!userCategories.Any())
+                {
+                    // הגנה למקרה חירום - אם אין עדיין קטגוריות מותאמות, ניקח את כל הקטגוריות הזמינות
+                    userCategories = await _categoryRepository.Find(c => c.UserId == userId || c.IsSystem);
+                }
+
+                // חלוקת אחוזים ראשונית שווה בין הקטגוריות הגמישות
+                int categoryCount = userCategories.Count(c => !c.IsFixed) > 0 ? userCategories.Count(c => !c.IsFixed) : userCategories.Count;
+                int defaultPercentage = 100 / categoryCount;
+                int remainder = 100 % categoryCount; // שארית חלוקה כדי להגיע בדיוק ל-100%
+
+                var newBudgets = new List<Budget>();
+                var flexibleCategories = userCategories.Where(c => !c.IsFixed).ToList();
+                if (!flexibleCategories.Any()) flexibleCategories = userCategories.ToList();
+
+                for (int i = 0; i < flexibleCategories.Count; i++)
+                {
+                    var cat = flexibleCategories[i];
+                    // הוספת השארית לפריט האחרון כדי להבטיח סך הכל מדויק של 100%
+                    int finalPercent = (i == flexibleCategories.Count - 1) ? defaultPercentage + remainder : defaultPercentage;
+
+                    var newBudget = new Budget
+                    {
+                        UserId = userId,
+                        CategoryId = cat.Id,
+                        Percentage = finalPercent,
+                        CalculatedAmount = (remaining * finalPercent) / 100,
+                        AlertEnabled = true,
+                        AlertThreshold = 90
+                    };
+
+                    await _budgetRepository.Add(newBudget);
+                    newBudgets.Add(newBudget);
+                }
+
+                // מעדכנים את המשתנה המקומי ברשימה החדשה שיצרנו
+                budgets = newBudgets;
+            }
+            else
+            {
+                // 3. אם התקציבים כבר היו קיימים ב-DB, רק נעדכן את ה-CalculatedAmount לפי ההכנסה הפנויה הנוכחית
+                foreach (var budget in budgets)
+                {
+                    var amount = (remaining * budget.Percentage) / 100;
+                    budget.CalculatedAmount = amount;
+                    await _budgetRepository.Update(budget.Id, budget);
+                }
             }
 
-            var budgetDtos = _mapper.Map<List<BudgetDto>>(budgets);
-            return budgetDtos;
+            return _mapper.Map<List<BudgetDto>>(budgets);
         }
+
         public async Task<List<BudgetDto>> CalculateBudgetMonthly(int userId, DateTime? targetMonth = null)
         {
             var user = await _userRepository.GetById(userId);
@@ -243,31 +267,25 @@ namespace Service.Services
             var lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
 
             var expenses = await _expenseRepository.Find(e => e.UserId == userId);
-
             decimal totalFixedThisMonth = 0;
 
             foreach (var e in expenses)
             {
-
                 if (e.InstallmentsCount > 1)
                 {
                     for (int i = 0; i < e.InstallmentsCount; i++)
                     {
                         var installmentDate = e.FirstInstallmentDate.AddMonths(i);
-
                         if (installmentDate >= firstOfMonth && installmentDate <= lastOfMonth)
                         {
                             totalFixedThisMonth += e.InstallmentAmount;
-                            break; 
+                            break;
                         }
                     }
                 }
-
                 else if (e.IsRecurring && e.StartDate.HasValue)
                 {
-                    bool withinPeriod = e.StartDate.Value <= lastOfMonth &&
-                                        (!e.EndDate.HasValue || e.EndDate.Value >= firstOfMonth);
-
+                    bool withinPeriod = e.StartDate.Value <= lastOfMonth && (!e.EndDate.HasValue || e.EndDate.Value >= firstOfMonth);
                     if (withinPeriod)
                     {
                         if (e.DayOfMonth.HasValue)
@@ -295,7 +313,6 @@ namespace Service.Services
             {
                 var amount = (remaining * budget.Percentage) / 100;
                 budget.CalculatedAmount = amount;
-
                 await _budgetRepository.Update(budget.Id, budget);
             }
 
